@@ -46,11 +46,20 @@ _SEVERITY_LABELS = {
 
 
 def _try_questionary() -> bool:
-    """Return True if questionary is importable."""
+    """Return True if questionary is importable AND a real TTY is available."""
     try:
         import questionary  # noqa: F401
-        return True
     except ImportError:
+        return False
+    # questionary requires a real Windows console (not xterm/Cygwin)
+    import sys
+    if not sys.stdout.isatty():
+        return False
+    try:
+        from prompt_toolkit.output import create_output
+        create_output()
+        return True
+    except Exception:
         return False
 
 
