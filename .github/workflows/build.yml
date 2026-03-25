@@ -10,8 +10,12 @@ on:
 permissions:
   contents: write
 
+# Silence Node.js 20 deprecation warnings (actions still work fine until June 2026)
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 # ---------------------------------------------------------------------------
-# Test on every push/PR (fast, single platform)
+# Test on every push/PR
 # ---------------------------------------------------------------------------
 jobs:
   test:
@@ -35,6 +39,9 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Build binaries — only on version tags
+  #
+  # macOS note: GitHub retired the macos-13 (Intel) runner. We build for
+  # arm64 only; Intel Mac users can run the arm64 binary under Rosetta 2.
   # ---------------------------------------------------------------------------
   build:
     name: Build ${{ matrix.asset_name }}
@@ -53,11 +60,7 @@ jobs:
             artifact: fireaudit
             asset_name: fireaudit-linux-x86_64
 
-          - os: macos-13         # Intel runner
-            artifact: fireaudit
-            asset_name: fireaudit-macos-x86_64
-
-          - os: macos-latest     # Apple Silicon (M-series) runner
+          - os: macos-latest       # arm64 (Apple Silicon) — Rosetta runs this on Intel too
             artifact: fireaudit
             asset_name: fireaudit-macos-arm64
 
@@ -86,7 +89,7 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # Package rules — for rules-only updates
+  # Package rules archive — for rules-only updates via `fireaudit rules update`
   # ---------------------------------------------------------------------------
   package-rules:
     name: Package rules archive
@@ -97,12 +100,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Create rules.zip
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          zip -r dist_rules/rules.zip rules/
-        shell: bash
-
-      - name: Create rules.zip (ensure dist_rules exists)
         run: |
           mkdir -p dist_rules
           zip -r dist_rules/rules.zip rules/
@@ -133,7 +130,6 @@ jobs:
       - name: Make Unix binaries executable
         run: |
           chmod +x release_assets/fireaudit-linux-x86_64 || true
-          chmod +x release_assets/fireaudit-macos-x86_64 || true
           chmod +x release_assets/fireaudit-macos-arm64  || true
 
       - name: List release assets
@@ -146,6 +142,5 @@ jobs:
           files: |
             release_assets/fireaudit-windows-x86_64.exe
             release_assets/fireaudit-linux-x86_64
-            release_assets/fireaudit-macos-x86_64
             release_assets/fireaudit-macos-arm64
             release_assets/rules.zip

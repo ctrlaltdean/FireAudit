@@ -105,9 +105,8 @@ def platform_asset_name() -> str:
     if system == "windows":
         return "fireaudit-windows-x86_64.exe"
     elif system == "darwin":
-        if "arm" in machine or "aarch64" in machine:
-            return "fireaudit-macos-arm64"
-        return "fireaudit-macos-x86_64"
+        # Only arm64 is built via CI. Intel Macs run it under Rosetta 2.
+        return "fireaudit-macos-arm64"
     else:
         # Linux and other Unix-likes
         return "fireaudit-linux-x86_64"
