@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policy os-version="12.10.0.B692988">
+
+  <setup>
+    <name>Firebox-EDGE-01</name>
+    <model-info>
+      <model>M370</model>
+      <serial-number>80AF20ABC1234</serial-number>
+    </model-info>
+    <admin>
+      <admin-session-timeout>10</admin-session-timeout>
+      <https-port>8080</https-port>
+      <ssh-port>22</ssh-port>
+      <max-login-attempts>5</max-login-attempts>
+      <lockout-period>5</lockout-period>
+      <login-banner>UNAUTHORIZED ACCESS PROHIBITED. All activity is monitored and logged.</login-banner>
+      <min-tls-version>TLSv1.2</min-tls-version>
+      <management-protocols>
+        <https>true</https>
+        <http>false</http>
+        <ssh>true</ssh>
+        <telnet>false</telnet>
+      </management-protocols>
+      <trusted-hosts>
+        <host ip="10.10.1.0/24">10.10.1.0/24</host>
+        <host ip="10.10.2.50/32">10.10.2.50/32</host>
+      </trusted-hosts>
+    </admin>
+
+    <password-policy>
+      <min-length>12</min-length>
+      <complexity-enabled>true</complexity-enabled>
+      <max-age>90</max-age>
+      <history>5</history>
+      <lockout-threshold>5</lockout-threshold>
+    </password-policy>
+  </setup>
+
+  <interface name="Trusted">
+    <zone>Trusted</zone>
+    <ip-address>10.10.1.1/24</ip-address>
+    <enabled>true</enabled>
+    <description>Trusted LAN interface</description>
+    <management-access>
+      <https>true</https>
+      <ssh>true</ssh>
+      <ping>true</ping>
+    </management-access>
+  </interface>
+
+  <interface name="External">
+    <zone>External</zone>
+    <ip-address>203.0.113.5/29</ip-address>
+    <enabled>true</enabled>
+    <description>WAN / External interface</description>
+    <management-access>
+      <https>false</https>
+      <ssh>false</ssh>
+      <ping>false</ping>
+    </management-access>
+  </interface>
+
+  <interface name="Optional">
+    <zone>Optional</zone>
+    <ip-address>10.20.1.1/24</ip-address>
+    <enabled>true</enabled>
+    <description>DMZ interface</description>
+  </interface>
+
+  <user name="admin">
+    <name>admin</name>
+    <role>admin</role>
+    <two-factor-auth>false</two-factor-auth>
+    <enabled>true</enabled>
+  </user>
+
+  <user name="svc-monitor">
+    <name>svc-monitor</name>
+    <role>user</role>
+    <two-factor-auth>true</two-factor-auth>
+    <enabled>true</enabled>
+  </user>
+
+  <authentication-server type="radius">
+    <type>radius</type>
+    <server-ip>10.10.1.150</server-ip>
+    <port>1812</port>
+  </authentication-server>
+
+  <logging>
+    <syslog-server>
+      <ip>10.10.1.200</ip>
+      <port>514</port>
+      <protocol>udp</protocol>
+      <facility>daemon</facility>
+    </syslog-server>
+    <syslog-server>
+      <ip>10.10.1.201</ip>
+      <port>6514</port>
+      <protocol>tcp</protocol>
+    </syslog-server>
+  </logging>
+
+  <ntp-client>
+    <enabled>true</enabled>
+    <server>pool.ntp.org</server>
+    <server>time.cloudflare.com</server>
+  </ntp-client>
+
+  <snmp>
+    <enabled>true</enabled>
+    <version>SNMPv3</version>
+    <community-string>wg-community</community-string>
+  </snmp>
+
+  <!-- Firewall policies -->
+  <policy-tag name="LAN-to-WAN" action="allow">
+    <from-zone>Trusted</from-zone>
+    <to-zone>External</to-zone>
+    <sources>
+      <member name="CORP-NET">CORP-NET</member>
+    </sources>
+    <destinations>
+      <member name="any">any</member>
+    </destinations>
+    <services>
+      <member name="any">any</member>
+    </services>
+    <log-enabled>true</log-enabled>
+    <description>Main LAN outbound rule</description>
+  </policy-tag>
+
+  <policy-tag name="Allow-HTTPS-DMZ" action="allow">
+    <from-zone>External</from-zone>
+    <to-zone>Optional</to-zone>
+    <sources>
+      <member name="any">any</member>
+    </sources>
+    <destinations>
+      <member name="DMZ-SERVER">DMZ-SERVER</member>
+    </destinations>
+    <services>
+      <member name="HTTPS">HTTPS</member>
+    </services>
+    <log-enabled>true</log-enabled>
+    <description>Allow HTTPS to DMZ web server</description>
+  </policy-tag>
+
+  <policy-tag name="Deny-All-Inbound" action="deny">
+    <from-zone>External</from-zone>
+    <to-zone>Trusted</to-zone>
+    <sources>
+      <member name="any">any</member>
+    </sources>
+    <destinations>
+      <member name="any">any</member>
+    </destinations>
+    <services>
+      <member name="any">any</member>
+    </services>
+    <log-enabled>true</log-enabled>
+    <description>Implicit deny all inbound</description>
+  </policy-tag>
+
+  <policy-tag name="TEMP-Any-Any" action="allow">
+    <from-zone>Trusted</from-zone>
+    <to-zone>External</to-zone>
+    <sources>
+      <member name="any">any</member>
+    </sources>
+    <destinations>
+      <member name="any">any</member>
+    </destinations>
+    <services>
+      <member name="any">any</member>
+    </services>
+    <log-enabled>false</log-enabled>
+    <description>TEMPORARY - remove before production</description>
+  </policy-tag>
+
+  <!-- Address objects -->
+  <address-object name="CORP-NET" type="network">
+    <name>CORP-NET</name>
+    <type>network</type>
+    <ip-address>10.10.1.0</ip-address>
+    <netmask>255.255.255.0</netmask>
+  </address-object>
+
+  <address-object name="DMZ-SERVER" type="host">
+    <name>DMZ-SERVER</name>
+    <type>host</type>
+    <ip-address>10.20.1.100</ip-address>
+  </address-object>
+
+  <!-- Service objects -->
+  <service-object name="HTTPS">
+    <name>HTTPS</name>
+    <protocol>tcp</protocol>
+    <port>443</port>
+  </service-object>
+
+  <!-- IPsec VPN tunnels -->
+  <ipsec-tunnel>
+    <name>HQ-IPSEC</name>
+    <enabled>true</enabled>
+    <ike-version>2</ike-version>
+    <gateway>
+      <remote-ip>198.51.100.10</remote-ip>
+      <auth-method>pre-shared-key</auth-method>
+    </gateway>
+    <phase1>
+      <encryption>AES-CBC-256</encryption>
+      <hash>SHA2-256</hash>
+      <dh-group>14</dh-group>
+      <lifetime>28800</lifetime>
+    </phase1>
+    <phase2>
+      <encryption>AES-CBC-256</encryption>
+      <hash>SHA2-256</hash>
+      <dh-group>14</dh-group>
+      <lifetime>3600</lifetime>
+      <pfs-enabled>true</pfs-enabled>
+    </phase2>
+  </ipsec-tunnel>
+
+  <ipsec-tunnel>
+    <name>LEGACY-IPSEC</name>
+    <enabled>true</enabled>
+    <ike-version>1</ike-version>
+    <gateway>
+      <remote-ip>192.0.2.50</remote-ip>
+      <auth-method>pre-shared-key</auth-method>
+    </gateway>
+    <phase1>
+      <encryption>3DES-CBC</encryption>
+      <hash>MD5</hash>
+      <dh-group>2</dh-group>
+      <lifetime>28800</lifetime>
+    </phase1>
+    <phase2>
+      <encryption>3DES-CBC</encryption>
+      <hash>MD5</hash>
+      <dh-group>2</dh-group>
+      <lifetime>28800</lifetime>
+      <pfs-enabled>false</pfs-enabled>
+    </phase2>
+  </ipsec-tunnel>
+
+  <!-- Mobile user / SSL VPN -->
+  <mobile-user-vpn>
+    <enabled>true</enabled>
+    <min-tls-version>TLSv1.2</min-tls-version>
+    <client-cert-required>false</client-cert-required>
+    <split-tunneling>false</split-tunneling>
+  </mobile-user-vpn>
+
+</policy>

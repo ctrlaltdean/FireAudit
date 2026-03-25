@@ -1,0 +1,398 @@
+<?xml version="1.0"?>
+<config version="10.1.11">
+  <devices>
+    <entry name="localhost.localdomain">
+      <deviceconfig>
+        <system>
+          <hostname>PA-FW-EDGE-01</hostname>
+          <platform-family>PA-440</platform-family>
+          <idle-timeout>10</idle-timeout>
+          <max-login-attempts>5</max-login-attempts>
+          <lockout-time>30</lockout-time>
+          <login-banner>UNAUTHORIZED ACCESS PROHIBITED. All activity is monitored and logged.</login-banner>
+          <service>
+            <disable-telnet>yes</disable-telnet>
+            <disable-http>yes</disable-http>
+            <disable-ssh>no</disable-ssh>
+            <disable-https>no</disable-https>
+          </service>
+          <permitted-ip>
+            <entry name="10.10.1.0/24"/>
+            <entry name="10.10.2.50/32"/>
+          </permitted-ip>
+          <ntp-servers>
+            <primary-ntp-server>
+              <ntp-server-address>pool.ntp.org</ntp-server-address>
+            </primary-ntp-server>
+            <secondary-ntp-server>
+              <ntp-server-address>time.cloudflare.com</ntp-server-address>
+            </secondary-ntp-server>
+          </ntp-servers>
+          <snmp-setting>
+            <access-setting>
+              <version>
+                <v3>
+                  <views>
+                    <entry name="v3-view">
+                      <view>
+                        <entry name="1.3.6">
+                          <option>include</option>
+                          <mask>0xf0</mask>
+                        </entry>
+                      </view>
+                    </entry>
+                  </views>
+                  <users>
+                    <entry name="snmpuser">
+                      <authpwd>AuthPass123!</authpwd>
+                      <privpwd>PrivPass123!</privpwd>
+                      <view>v3-view</view>
+                    </entry>
+                  </users>
+                </v3>
+              </version>
+            </access-setting>
+            <system>
+              <location>DataCenter-Rack-12</location>
+              <contact>noc@example.com</contact>
+            </system>
+          </snmp-setting>
+        </system>
+        <syslog>
+          <server>
+            <entry name="SIEM-Primary">
+              <server>10.10.1.200</server>
+              <transport>TCP</transport>
+              <port>514</port>
+              <format>BSD</format>
+              <facility>LOG_USER</facility>
+            </entry>
+            <entry name="SIEM-Secondary">
+              <server>10.10.1.201</server>
+              <transport>UDP</transport>
+              <port>514</port>
+              <format>BSD</format>
+              <facility>LOG_USER</facility>
+            </entry>
+          </server>
+        </syslog>
+      </deviceconfig>
+
+      <vsys>
+        <entry name="vsys1">
+          <address>
+            <entry name="CORP-NET">
+              <ip-netmask>10.10.1.0/24</ip-netmask>
+              <description>Corporate LAN</description>
+            </entry>
+            <entry name="DMZ-SERVER">
+              <ip-netmask>10.20.1.100/32</ip-netmask>
+            </entry>
+            <entry name="ANY-NET">
+              <ip-netmask>0.0.0.0/0</ip-netmask>
+            </entry>
+          </address>
+          <address-group>
+            <entry name="CORP-SUBNETS">
+              <static>
+                <member>CORP-NET</member>
+              </static>
+            </entry>
+          </address-group>
+          <service>
+            <entry name="tcp-8443">
+              <protocol>
+                <tcp>
+                  <port>8443</port>
+                </tcp>
+              </protocol>
+            </entry>
+            <entry name="udp-53">
+              <protocol>
+                <udp>
+                  <port>53</port>
+                </udp>
+              </protocol>
+            </entry>
+          </service>
+          <zone>
+            <entry name="trust">
+              <network>
+                <layer3>
+                  <member>ethernet1/1</member>
+                </layer3>
+              </network>
+            </entry>
+            <entry name="untrust">
+              <network>
+                <layer3>
+                  <member>ethernet1/2</member>
+                </layer3>
+              </network>
+            </entry>
+            <entry name="dmz">
+              <network>
+                <layer3>
+                  <member>ethernet1/3</member>
+                </layer3>
+              </network>
+            </entry>
+          </zone>
+          <security>
+            <rules>
+              <entry name="Allow-Corp-Outbound">
+                <from><member>trust</member></from>
+                <to><member>untrust</member></to>
+                <source><member>CORP-NET</member></source>
+                <destination><member>any</member></destination>
+                <application><member>any</member></application>
+                <service><member>application-default</member></service>
+                <action>allow</action>
+                <log-end>yes</log-end>
+                <profile-setting>
+                  <group><member>default</member></group>
+                </profile-setting>
+              </entry>
+              <entry name="Allow-HTTPS-DMZ">
+                <from><member>untrust</member></from>
+                <to><member>dmz</member></to>
+                <source><member>any</member></source>
+                <destination><member>DMZ-SERVER</member></destination>
+                <application><member>ssl</member></application>
+                <service><member>application-default</member></service>
+                <action>allow</action>
+                <log-end>yes</log-end>
+              </entry>
+              <entry name="Deny-All-Inbound">
+                <from><member>untrust</member></from>
+                <to><member>trust</member></to>
+                <source><member>any</member></source>
+                <destination><member>any</member></destination>
+                <application><member>any</member></application>
+                <service><member>any</member></service>
+                <action>deny</action>
+                <log-end>yes</log-end>
+              </entry>
+              <entry name="TEMP-ANY-ANY">
+                <from><member>trust</member></from>
+                <to><member>untrust</member></to>
+                <source><member>any</member></source>
+                <destination><member>any</member></destination>
+                <application><member>any</member></application>
+                <service><member>any</member></service>
+                <action>allow</action>
+                <log-end>no</log-end>
+                <log-start>no</log-start>
+                <description>TEMPORARY - remove before audit</description>
+              </entry>
+            </rules>
+          </security>
+        </entry>
+      </vsys>
+
+      <network>
+        <interface>
+          <ethernet>
+            <entry name="ethernet1/1">
+              <layer3>
+                <ip>
+                  <entry name="10.10.1.1/24"/>
+                </ip>
+                <interface-management-profile>MGMT-PROFILE</interface-management-profile>
+              </layer3>
+              <comment>Trust/LAN interface</comment>
+            </entry>
+            <entry name="ethernet1/2">
+              <layer3>
+                <ip>
+                  <entry name="203.0.113.5/29"/>
+                </ip>
+              </layer3>
+              <comment>Untrust/WAN interface</comment>
+            </entry>
+            <entry name="ethernet1/3">
+              <layer3>
+                <ip>
+                  <entry name="10.20.1.1/24"/>
+                </ip>
+              </layer3>
+              <comment>DMZ interface</comment>
+            </entry>
+          </ethernet>
+          <tunnel>
+            <entry name="tunnel.1">
+              <comment>HQ IPsec tunnel</comment>
+            </entry>
+          </tunnel>
+        </interface>
+
+        <ike>
+          <crypto-profiles>
+            <ike-crypto-profiles>
+              <entry name="AES256-SHA256-IKE">
+                <encryption>
+                  <member>aes-256-cbc</member>
+                  <member>aes-128-cbc</member>
+                </encryption>
+                <hash>
+                  <member>sha256</member>
+                </hash>
+                <dh-group>
+                  <member>group19</member>
+                  <member>group14</member>
+                </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                </lifetime>
+              </entry>
+              <entry name="WEAK-LEGACY-IKE">
+                <encryption>
+                  <member>3des</member>
+                </encryption>
+                <hash>
+                  <member>sha1</member>
+                </hash>
+                <dh-group>
+                  <member>group2</member>
+                </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                </lifetime>
+              </entry>
+            </ike-crypto-profiles>
+            <ipsec-crypto-profiles>
+              <entry name="AES256-SHA256-IPSEC">
+                <esp>
+                  <encryption>
+                    <member>aes-256-cbc</member>
+                    <member>aes-128-gcm</member>
+                  </encryption>
+                  <authentication>
+                    <member>sha256</member>
+                  </authentication>
+                </esp>
+                <dh-group>
+                  <member>group19</member>
+                </dh-group>
+                <lifetime>
+                  <seconds>3600</seconds>
+                </lifetime>
+              </entry>
+              <entry name="WEAK-LEGACY-IPSEC">
+                <esp>
+                  <encryption>
+                    <member>3des</member>
+                  </encryption>
+                  <authentication>
+                    <member>md5</member>
+                  </authentication>
+                </esp>
+                <dh-group>
+                  <member>group2</member>
+                </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                </lifetime>
+              </entry>
+            </ipsec-crypto-profiles>
+          </crypto-profiles>
+          <gateway>
+            <entry name="IKE-GW-HQ">
+              <authentication>
+                <pre-shared-key>
+                  <key>-AQ==SomePSKValue</key>
+                </pre-shared-key>
+              </authentication>
+              <protocol>
+                <ikev2>
+                  <ike-crypto-profile>AES256-SHA256-IKE</ike-crypto-profile>
+                  <dpd>
+                    <enable>yes</enable>
+                  </dpd>
+                </ikev2>
+                <version>ikev2</version>
+              </protocol>
+              <local-address>
+                <interface>ethernet1/2</interface>
+              </local-address>
+              <peer-address>
+                <ip>198.51.100.10</ip>
+              </peer-address>
+            </entry>
+            <entry name="IKE-GW-PARTNER-LEGACY">
+              <authentication>
+                <pre-shared-key>
+                  <key>-AQ==LegacyPSK</key>
+                </pre-shared-key>
+              </authentication>
+              <protocol>
+                <ikev1>
+                  <ike-crypto-profile>WEAK-LEGACY-IKE</ike-crypto-profile>
+                </ikev1>
+                <version>ikev1</version>
+              </protocol>
+              <local-address>
+                <interface>ethernet1/2</interface>
+              </local-address>
+              <peer-address>
+                <ip>192.0.2.50</ip>
+              </peer-address>
+            </entry>
+          </gateway>
+        </ike>
+
+        <tunnel>
+          <ipsec>
+            <entry name="IPSEC-TUNNEL-HQ">
+              <tunnel-interface>tunnel.1</tunnel-interface>
+              <ike>
+                <gateway>IKE-GW-HQ</gateway>
+                <ipsec-crypto-profile>AES256-SHA256-IPSEC</ipsec-crypto-profile>
+              </ike>
+            </entry>
+            <entry name="IPSEC-TUNNEL-PARTNER">
+              <tunnel-interface>tunnel.2</tunnel-interface>
+              <ike>
+                <gateway>IKE-GW-PARTNER-LEGACY</gateway>
+                <ipsec-crypto-profile>WEAK-LEGACY-IPSEC</ipsec-crypto-profile>
+              </ike>
+            </entry>
+          </ipsec>
+        </tunnel>
+      </network>
+    </entry>
+  </devices>
+
+  <mgt-config>
+    <users>
+      <entry name="admin">
+        <phash>$6$somethinghashed</phash>
+        <permissions>
+          <role-based>
+            <superuser>yes</superuser>
+          </role-based>
+        </permissions>
+      </entry>
+      <entry name="svc-readonly">
+        <phash>$6$anotherhash</phash>
+        <permissions>
+          <role-based>
+            <superreader>yes</superreader>
+          </role-based>
+        </permissions>
+        <authentication-profile>DUO-MFA</authentication-profile>
+      </entry>
+    </users>
+    <password-complexity>
+      <enabled>yes</enabled>
+      <minimum-length>12</minimum-length>
+      <minimum-uppercase-letters>1</minimum-uppercase-letters>
+      <minimum-lowercase-letters>1</minimum-lowercase-letters>
+      <minimum-numeric-letters>1</minimum-numeric-letters>
+      <minimum-special-characters>1</minimum-special-characters>
+      <password-history-count>5</password-history-count>
+      <failed-attempts>5</failed-attempts>
+    </password-complexity>
+  </mgt-config>
+
+</config>

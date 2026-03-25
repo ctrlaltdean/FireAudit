@@ -1,0 +1,27 @@
+rule_id: FW-ADM-003
+name: SSH Must Use Version 2 Only
+description: >
+  SSH version 1 has known cryptographic weaknesses including protocol-level
+  vulnerabilities. Only SSHv2 must be permitted for management access.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.2: Use SSHv2"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "CM-7: Least Functionality"
+  ISO27001:
+    - "A.14.1.3: Protecting application services transactions"
+  CMMC:
+    - "AC.L2-3.1.13: Employ cryptographic mechanisms"
+match:
+  type: condition
+  path: admin_access.ssh_settings.version
+  condition:
+    type: neq
+    value: 1
+remediation: >
+  Configure SSH to use version 2 only. FortiGate: 'config system global' →
+  'set admin-ssh-v1 disable'. Verify no SSH v1 compatibility flags are set.

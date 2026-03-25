@@ -1,0 +1,39 @@
+rule_id: FW-VPN-001
+name: IPsec VPN Must Not Use Weak Encryption Algorithms
+description: >
+  IKE phase 1 and phase 2 must not use deprecated or weak encryption
+  algorithms including DES, 3DES, RC4, or NULL encryption. Only AES-128
+  or stronger is acceptable.
+severity: critical
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.1: Use strong VPN encryption"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "SC-28: Protection of Information at Rest"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms to prevent unauthorized disclosure"
+match:
+  type: not_exists_where
+  path: vpn.ipsec_tunnels
+  where:
+    enabled:
+      type: is_true
+    phase1:
+      type: list_any
+      condition:
+        type: intersects
+        values:
+          - des
+          - "3des"
+          - "rc4"
+          - "null"
+remediation: >
+  Replace weak encryption algorithms with AES-256 or AES-128.
+  FortiGate phase1-interface: 'set proposal aes256-sha256 aes128-sha256'.
+  Phase2-interface: 'set proposal aes256-sha256 aes128-sha256'.
+  Remove any DES, 3DES, or NULL cipher proposals.

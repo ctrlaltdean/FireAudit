@@ -1,0 +1,36 @@
+rule_id: FW-LOG-001
+name: Remote Syslog Server Must Be Configured
+description: >
+  Log data must be forwarded to a remote syslog server for centralized
+  storage, analysis, and protection from tampering. Local-only logging is
+  insufficient for security monitoring and incident response.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.1: Enable logging to remote syslog"
+  NIST_800-53:
+    - "AU-3: Content of Audit Records"
+    - "AU-9: Protection of Audit Information"
+    - "SI-4: System Monitoring"
+  NIST_CSF:
+    - "DE.AE-1: Baseline network operations established"
+    - "DE.CM-1: Network monitored for attacks"
+  ISO27001:
+    - "A.12.4.1: Event logging"
+    - "A.12.4.2: Protection of log information"
+  CMMC:
+    - "AU.L2-3.3.1: Create and retain audit logs"
+    - "AU.L2-3.3.2: Ensure audit log review and reporting"
+match:
+  type: condition
+  path: logging.syslog_servers
+  condition:
+    type: count_gt
+    value: 0
+remediation: >
+  Configure at least one remote syslog server. FortiGate: 'config log syslogd setting'
+  → 'set status enable' → 'set server <SIEM-IP>' → 'set port 514'
+  → 'set mode reliable' (for TCP syslog). Consider using TLS syslog for
+  log integrity in transit.

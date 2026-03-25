@@ -1,0 +1,241 @@
+"""HTML report generator using Jinja2 templates."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from jinja2 import Environment, BaseLoader
+
+# Inline template to keep the project self-contained
+_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireAudit Report — {{ report.device.hostname or report.device.vendor }}</title>
+<style>
+  :root {
+    --critical: #dc2626; --high: #ea580c; --medium: #d97706;
+    --low: #65a30d; --info: #0284c7; --pass: #16a34a; --fail: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; }
+  header { background: #1e293b; color: white; padding: 2rem; }
+  header h1 { font-size: 1.75rem; font-weight: 700; }
+  header p { margin-top: .5rem; opacity: .7; font-size: .9rem; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0; }
+  .card { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .card .value { font-size: 2.5rem; font-weight: 700; }
+  .card .label { font-size: .85rem; color: #64748b; margin-top: .25rem; }
+  .pass .value { color: var(--pass); }
+  .fail .value { color: var(--fail); }
+  .score-card { border-top: 4px solid #6366f1; }
+  section { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 1.5rem; }
+  section h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 1px solid #e2e8f0; }
+  .fw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+  .fw-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; }
+  .fw-card h3 { font-size: .9rem; font-weight: 600; margin-bottom: .5rem; }
+  .progress { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: .5rem 0; }
+  .progress-bar { height: 100%; border-radius: 4px; transition: width .3s; }
+  .progress-bar.green { background: var(--pass); }
+  .progress-bar.amber { background: var(--medium); }
+  .progress-bar.red { background: var(--fail); }
+  .score-text { font-size: .8rem; color: #64748b; }
+  table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  th { background: #f1f5f9; padding: .6rem 1rem; text-align: left; font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+  td { padding: .75rem 1rem; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; padding: .15rem .5rem; border-radius: 9999px; font-size: .75rem; font-weight: 600; }
+  .badge.critical { background: #fef2f2; color: var(--critical); }
+  .badge.high { background: #fff7ed; color: var(--high); }
+  .badge.medium { background: #fffbeb; color: var(--medium); }
+  .badge.low { background: #f7fee7; color: var(--low); }
+  .badge.info { background: #f0f9ff; color: var(--info); }
+  .badge.pass { background: #f0fdf4; color: var(--pass); }
+  .badge.fail { background: #fef2f2; color: var(--fail); }
+  .badge.error { background: #f5f3ff; color: #7c3aed; }
+  .remediation { font-size: .8rem; background: #f8fafc; border-left: 3px solid #6366f1; padding: .5rem .75rem; margin-top: .5rem; color: #475569; }
+  .affected { font-family: monospace; font-size: .75rem; color: #64748b; margin-top: .25rem; }
+  details > summary { cursor: pointer; font-size: .8rem; color: #6366f1; margin-top: .25rem; }
+  details[open] { margin-top: .5rem; }
+  .filter-bar { display: flex; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-bar select, .filter-bar input { padding: .4rem .75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: .85rem; }
+  .device-meta td:first-child { font-weight: 500; width: 200px; }
+  footer { text-align: center; padding: 2rem; font-size: .8rem; color: #94a3b8; }
+  @media print {
+    header { background: #1e293b !important; -webkit-print-color-adjust: exact; }
+    .filter-bar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FireAudit Security Report</h1>
+  <p>Generated {{ report.generated_at }} &nbsp;|&nbsp;
+     {{ report.device.vendor | upper }} {{ report.device.hostname or "" }}
+     {% if report.device.firmware_version %}&nbsp;|&nbsp; FW: {{ report.device.firmware_version }}{% endif %}
+  </p>
+</header>
+
+<div class="container">
+
+  <!-- Summary cards -->
+  <div class="grid">
+    <div class="card">
+      <div class="value">{{ report.summary.total_rules }}</div>
+      <div class="label">Rules Evaluated</div>
+    </div>
+    <div class="card pass">
+      <div class="value">{{ report.summary.pass }}</div>
+      <div class="label">Passed</div>
+    </div>
+    <div class="card fail">
+      <div class="value">{{ report.summary.fail }}</div>
+      <div class="label">Failed</div>
+    </div>
+    {% for sev in ["critical", "high", "medium", "low"] %}
+    {% set sev_data = report.summary.by_severity.get(sev, {}) %}
+    {% if sev_data %}
+    <div class="card">
+      <div class="value" style="color: var(--{{ sev }})">{{ sev_data.get("fail", 0) }}</div>
+      <div class="label">{{ sev | capitalize }} Failures</div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Compliance scores -->
+  {% if report.compliance_scores %}
+  <section>
+    <h2>Framework Compliance Scores</h2>
+    <div class="fw-grid">
+      {% for fw, data in report.compliance_scores.items() %}
+      {% set score = data.score_percent %}
+      <div class="fw-card">
+        <h3>{{ fw }}</h3>
+        <div class="progress">
+          <div class="progress-bar {% if score >= 80 %}green{% elif score >= 60 %}amber{% else %}red{% endif %}"
+               style="width: {{ score }}%"></div>
+        </div>
+        <div class="score-text">{{ score }}% — {{ data.pass }} pass / {{ data.fail }} fail</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Device info -->
+  <section>
+    <h2>Device Information</h2>
+    <table class="device-meta">
+      <tr><td>Vendor</td><td>{{ report.device.vendor }}</td></tr>
+      <tr><td>Hostname</td><td>{{ report.device.hostname or "—" }}</td></tr>
+      <tr><td>Model</td><td>{{ report.device.model or "—" }}</td></tr>
+      <tr><td>Firmware</td><td>{{ report.device.firmware_version or "—" }}</td></tr>
+      <tr><td>Source File</td><td>{{ report.device.source_file or "—" }}</td></tr>
+    </table>
+  </section>
+
+  <!-- Findings table -->
+  <section>
+    <h2>Findings</h2>
+    <div class="filter-bar">
+      <select id="sev-filter" onchange="filterTable()">
+        <option value="">All Severities</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+        <option value="info">Info</option>
+      </select>
+      <select id="status-filter" onchange="filterTable()">
+        <option value="">All Statuses</option>
+        <option value="fail">Fail</option>
+        <option value="pass">Pass</option>
+        <option value="error">Error</option>
+      </select>
+      <input id="search" type="text" placeholder="Search…" oninput="filterTable()">
+    </div>
+    <table id="findings-table">
+      <thead>
+        <tr>
+          <th>Rule ID</th>
+          <th>Name</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Details / Remediation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in report.findings | sort(attribute='severity', reverse=False) %}
+        <tr data-sev="{{ f.severity }}" data-status="{{ f.status }}">
+          <td><code>{{ f.rule_id }}</code></td>
+          <td>
+            {{ f.name }}
+            {% if f.frameworks %}
+            <details>
+              <summary>Framework mappings</summary>
+              {% for fw, controls in f.frameworks.items() %}
+              <div style="margin:.25rem 0;font-size:.75rem;">
+                <strong>{{ fw }}:</strong>
+                {% if controls is string %}{{ controls }}
+                {% else %}{{ controls | join(", ") }}{% endif %}
+              </div>
+              {% endfor %}
+            </details>
+            {% endif %}
+          </td>
+          <td><span class="badge {{ f.severity }}">{{ f.severity }}</span></td>
+          <td><span class="badge {{ f.status }}">{{ f.status }}</span></td>
+          <td>
+            {% if f.details %}<div class="affected">{{ f.details }}</div>{% endif %}
+            {% if f.affected_paths %}
+            <div class="affected">Path: {{ f.affected_paths | join(", ") }}</div>
+            {% endif %}
+            {% if f.status == "fail" and f.remediation %}
+            <div class="remediation">{{ f.remediation }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+</div>
+
+<footer>Generated by <strong>FireAudit</strong> — Offline firewall configuration auditing</footer>
+
+<script>
+function filterTable() {
+  const sev = document.getElementById('sev-filter').value;
+  const status = document.getElementById('status-filter').value;
+  const search = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('#findings-table tbody tr').forEach(row => {
+    const matchSev = !sev || row.dataset.sev === sev;
+    const matchStatus = !status || row.dataset.status === status;
+    const matchSearch = !search || row.textContent.toLowerCase().includes(search);
+    row.style.display = (matchSev && matchStatus && matchSearch) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>
+"""
+
+
+def render_html(report: dict, output_path: str | Path | None = None) -> str:
+    """Render an HTML report from a report dict. Returns HTML string."""
+    env = Environment(loader=BaseLoader())
+    # Make dict.get available in templates
+    env.globals["report"] = report
+    template = env.from_string(_TEMPLATE)
+    html = template.render(report=report)
+
+    if output_path:
+        Path(output_path).write_text(html, encoding="utf-8")
+
+    return html

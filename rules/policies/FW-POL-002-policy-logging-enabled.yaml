@@ -1,0 +1,37 @@
+rule_id: FW-POL-002
+name: All Allow Policies Must Have Logging Enabled
+description: >
+  Traffic matching allow policies must be logged to provide an audit trail
+  of permitted connections. Policies without logging create blind spots in
+  security monitoring and incident investigation.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.3: Log all allowed traffic"
+  NIST_800-53:
+    - "AU-2: Audit Events"
+    - "AU-12: Audit Record Generation"
+  NIST_CSF:
+    - "DE.CM-1: Network monitored for attacks"
+    - "PR.PT-1: Audit/log records determined and documented"
+  ISO27001:
+    - "A.12.4.1: Event logging"
+  CMMC:
+    - "AU.L2-3.3.1: Create and retain audit logs"
+match:
+  type: not_exists_where
+  path: firewall_policies
+  where:
+    action:
+      type: eq
+      value: allow
+    enabled:
+      type: is_true
+    logging_enabled:
+      type: is_false
+remediation: >
+  Enable logging on all active allow policies. FortiGate: In 'config firewall policy',
+  set 'logtraffic all' or 'logtraffic utm' on each policy. At minimum, enable
+  'logtraffic-start enable' to capture session initiation events.

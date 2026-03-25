@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SonicwallConfig FirmwareVer="SonicOS Enhanced 6.5.4.7-83n">
+  <General>
+    <SystemName>SonicWall-EDGE-01</SystemName>
+    <SerialNumber>0017C5A1B2C3</SerialNumber>
+    <Model>NSA 2700</Model>
+  </General>
+
+  <ManagementSettings>
+    <AdminIdleTimeout>10</AdminIdleTimeout>
+    <MaxLoginAttempts>3</MaxLoginAttempts>
+    <LockoutPeriod>300</LockoutPeriod>
+    <HTTPSMgmt>true</HTTPSMgmt>
+    <SSHMgmt>true</SSHMgmt>
+    <HTTPMgmt>false</HTTPMgmt>
+    <TelnetMgmt>false</TelnetMgmt>
+    <MinPasswordLength>12</MinPasswordLength>
+    <PasswordComplexity>true</PasswordComplexity>
+    <PasswordMaxAge>90</PasswordMaxAge>
+    <LoginBanner>Authorized access only. All activity is monitored and logged.</LoginBanner>
+    <BannerEnabled>true</BannerEnabled>
+  </ManagementSettings>
+
+  <Network>
+    <Interfaces>
+      <Interface>
+        <Name>X0</Name>
+        <Zone>LAN</Zone>
+        <IPAddress>10.10.1.1</IPAddress>
+        <SubnetMask>255.255.255.0</SubnetMask>
+        <Enabled>true</Enabled>
+        <Comment>LAN interface</Comment>
+        <MgmtHTTPS>true</MgmtHTTPS>
+        <MgmtSSH>true</MgmtSSH>
+        <MgmtPing>true</MgmtPing>
+      </Interface>
+      <Interface>
+        <Name>X1</Name>
+        <Zone>WAN</Zone>
+        <IPAddress>203.0.113.5</IPAddress>
+        <SubnetMask>255.255.255.248</SubnetMask>
+        <Enabled>true</Enabled>
+        <Comment>WAN interface</Comment>
+        <MgmtHTTPS>false</MgmtHTTPS>
+        <MgmtSSH>false</MgmtSSH>
+        <MgmtPing>true</MgmtPing>
+      </Interface>
+      <Interface>
+        <Name>X2</Name>
+        <Zone>DMZ</Zone>
+        <IPAddress>10.20.1.1</IPAddress>
+        <SubnetMask>255.255.255.0</SubnetMask>
+        <Enabled>true</Enabled>
+        <Comment>DMZ interface</Comment>
+        <MgmtHTTPS>false</MgmtHTTPS>
+        <MgmtSSH>false</MgmtSSH>
+        <MgmtPing>true</MgmtPing>
+      </Interface>
+    </Interfaces>
+  </Network>
+
+  <Users>
+    <LocalUser>
+      <Name>admin</Name>
+      <Enabled>true</Enabled>
+      <AdminRights>true</AdminRights>
+      <TwoFactorEnabled>false</TwoFactorEnabled>
+    </LocalUser>
+    <LocalUser>
+      <Name>svc-monitor</Name>
+      <Enabled>true</Enabled>
+      <AdminRights>false</AdminRights>
+      <TwoFactorEnabled>true</TwoFactorEnabled>
+    </LocalUser>
+  </Users>
+
+  <Syslog>
+    <Enabled>true</Enabled>
+    <Server>
+      <IPAddress>10.10.1.200</IPAddress>
+      <Port>514</Port>
+      <Protocol>UDP</Protocol>
+    </Server>
+    <Server>
+      <IPAddress>10.10.1.201</IPAddress>
+      <Port>6514</Port>
+      <Protocol>TCP</Protocol>
+    </Server>
+  </Syslog>
+
+  <NTP>
+    <Enabled>true</Enabled>
+    <Server1>pool.ntp.org</Server1>
+    <Server2>time.cloudflare.com</Server2>
+  </NTP>
+
+  <SNMP>
+    <Enabled>true</Enabled>
+    <Version>SNMPv3</Version>
+    <CommunityString>sw-community</CommunityString>
+  </SNMP>
+
+  <TrustedHosts>
+    <Host>10.10.1.0/24</Host>
+    <Host>10.10.2.50/32</Host>
+  </TrustedHosts>
+
+  <RadiusSettings>
+    <Enabled>true</Enabled>
+    <Server>10.10.1.150</Server>
+    <Port>1812</Port>
+  </RadiusSettings>
+
+  <AccessRules>
+    <Rule>
+      <Name>LAN-to-WAN</Name>
+      <Enabled>true</Enabled>
+      <Action>Allow</Action>
+      <IPVersion>IPv4</IPVersion>
+      <FromZone>LAN</FromZone>
+      <ToZone>WAN</ToZone>
+      <Source>Any</Source>
+      <Destination>Any</Destination>
+      <Service>Any</Service>
+      <Log>true</Log>
+      <Comment>Main outbound rule</Comment>
+    </Rule>
+    <Rule>
+      <Name>Allow-HTTPS-DMZ</Name>
+      <Enabled>true</Enabled>
+      <Action>Allow</Action>
+      <IPVersion>IPv4</IPVersion>
+      <FromZone>WAN</FromZone>
+      <ToZone>DMZ</ToZone>
+      <Source>Any</Source>
+      <Destination>DMZ-SERVER</Destination>
+      <Service>HTTPS</Service>
+      <Log>true</Log>
+      <Comment>Allow HTTPS to DMZ server</Comment>
+    </Rule>
+    <Rule>
+      <Name>Deny-All-Inbound</Name>
+      <Enabled>true</Enabled>
+      <Action>Deny</Action>
+      <IPVersion>IPv4</IPVersion>
+      <FromZone>WAN</FromZone>
+      <ToZone>LAN</ToZone>
+      <Source>Any</Source>
+      <Destination>Any</Destination>
+      <Service>Any</Service>
+      <Log>true</Log>
+      <Comment>Block all inbound to LAN</Comment>
+    </Rule>
+    <Rule>
+      <Name>TEMP-Any-Any</Name>
+      <Enabled>true</Enabled>
+      <Action>Allow</Action>
+      <IPVersion>IPv4</IPVersion>
+      <FromZone>LAN</FromZone>
+      <ToZone>WAN</ToZone>
+      <Source>Any</Source>
+      <Destination>Any</Destination>
+      <Service>Any</Service>
+      <Log>false</Log>
+      <Comment>Temporary rule - remove before prod</Comment>
+    </Rule>
+  </AccessRules>
+
+  <AddressObjects>
+    <AddressObject>
+      <Name>CORP-NET</Name>
+      <Type>Network</Type>
+      <IPAddress>10.10.1.0</IPAddress>
+      <SubnetMask>255.255.255.0</SubnetMask>
+      <Zone>LAN</Zone>
+    </AddressObject>
+    <AddressObject>
+      <Name>DMZ-SERVER</Name>
+      <Type>Host</Type>
+      <IPAddress>10.20.1.100</IPAddress>
+      <SubnetMask>255.255.255.255</SubnetMask>
+      <Zone>DMZ</Zone>
+    </AddressObject>
+  </AddressObjects>
+
+  <VPNPolicies>
+    <Policy>
+      <Name>HQ-VPN</Name>
+      <Enabled>true</Enabled>
+      <GatewayIP>198.51.100.10</GatewayIP>
+      <AuthMethod>PSK</AuthMethod>
+      <IKEVersion>IKEv2</IKEVersion>
+      <Phase1Encryption>AES-256</Phase1Encryption>
+      <Phase1Auth>SHA-256</Phase1Auth>
+      <Phase1DHGroup>14</Phase1DHGroup>
+      <Phase2Encryption>AES-256</Phase2Encryption>
+      <Phase2Auth>SHA-256</Phase2Auth>
+      <Phase2DHGroup>14</Phase2DHGroup>
+      <PFS>true</PFS>
+    </Policy>
+    <Policy>
+      <Name>LEGACY-VPN</Name>
+      <Enabled>true</Enabled>
+      <GatewayIP>192.0.2.50</GatewayIP>
+      <AuthMethod>PSK</AuthMethod>
+      <IKEVersion>IKEv1</IKEVersion>
+      <Phase1Encryption>3DES</Phase1Encryption>
+      <Phase1Auth>MD5</Phase1Auth>
+      <Phase1DHGroup>2</Phase1DHGroup>
+      <Phase2Encryption>3DES</Phase2Encryption>
+      <Phase2Auth>MD5</Phase2Auth>
+      <Phase2DHGroup>2</Phase2DHGroup>
+      <PFS>false</PFS>
+    </Policy>
+  </VPNPolicies>
+
+  <SSLVPN>
+    <Enabled>true</Enabled>
+    <TLSMinVersion>TLS 1.2</TLSMinVersion>
+    <ClientCertRequired>false</ClientCertRequired>
+    <SplitTunneling>false</SplitTunneling>
+  </SSLVPN>
+
+</SonicwallConfig>

@@ -1,0 +1,33 @@
+rule_id: FW-AUTH-002
+name: Default 'admin' Account Must Be Renamed or Disabled
+description: >
+  The default 'admin' account is a well-known target for brute-force attacks.
+  It should be renamed to a non-obvious username or disabled if an alternative
+  superadmin account exists.
+severity: high
+vendors:
+  - fortigate
+  - pfsense
+  - opnsense
+  - watchguard
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.6: Rename default accounts"
+  NIST_800-53:
+    - "AC-2: Account Management"
+    - "IA-5: Authenticator Management"
+  ISO27001:
+    - "A.9.2.3: Management of privileged access rights"
+  CMMC:
+    - "AC.L1-3.1.1: Limit system access to authorized users"
+match:
+  type: condition
+  path: authentication.default_admin_account_exists
+  condition:
+    type: is_false
+remediation: >
+  Rename the default 'admin' account to a non-obvious username and create
+  a new privileged administrator account. FortiGate: The built-in 'admin'
+  account cannot be renamed — instead, create a new superadmin account and
+  set a strong password on the built-in admin, or restrict its trusted hosts
+  to prevent remote access.

@@ -1,0 +1,32 @@
+rule_id: FW-VPN-003
+name: IPsec VPN Must Not Use Weak Diffie-Hellman Groups
+description: >
+  DH groups 1, 2, and 5 are cryptographically weak and vulnerable to
+  downgrade attacks. Minimum acceptable DH group is 14 (2048-bit).
+  Groups 19, 20, 21 (ECDH) or 24 (2048-bit MODP with 256-bit PRP) are preferred.
+severity: high
+vendors:
+  - all
+frameworks:
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+match:
+  type: not_exists_where
+  path: vpn.ipsec_tunnels
+  where:
+    enabled:
+      type: is_true
+    phase1.dh_groups:
+      type: intersects
+      values:
+        - 1
+        - 2
+        - 5
+remediation: >
+  Replace weak DH groups with group 14 or higher. Recommended: groups 19, 20,
+  or 21 (ECDH). FortiGate: 'config vpn ipsec phase1-interface' → 'set dhgrp 14 19 20 21'.
+  Also update phase2: 'config vpn ipsec phase2-interface' → 'set dhgrp 14 19 20 21'.

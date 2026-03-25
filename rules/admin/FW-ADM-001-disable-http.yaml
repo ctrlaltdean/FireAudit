@@ -1,0 +1,37 @@
+rule_id: FW-ADM-001
+name: HTTP Management Must Be Disabled
+description: >
+  Plain-text HTTP access to the management interface must be disabled.
+  HTTP transmits credentials and session data in cleartext, exposing them
+  to network eavesdropping.
+severity: critical
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.1: Disable insecure management protocols"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "AC-17: Remote Access"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "AC.L1-3.1.13: Employ cryptographic mechanisms to protect CUI"
+match:
+  type: foreach
+  path: admin_access.management_protocols
+  filter:
+    field: protocol
+    condition:
+      type: eq
+      value: http
+  checks:
+    - path: enabled
+      condition:
+        type: is_false
+remediation: >
+  Disable HTTP management access. On FortiGate: 'config system global' →
+  'set admin-http disable'. Ensure HTTPS is enabled and uses TLS 1.2+.
+  Remove HTTP from interface allowaccess settings.

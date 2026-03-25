@@ -1,0 +1,35 @@
+rule_id: FW-LOG-002
+name: NTP Must Be Configured for Accurate Log Timestamps
+description: >
+  Accurate timestamps are essential for log correlation, incident response,
+  and compliance. NTP must be configured to synchronize the device clock
+  with authoritative time servers.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.2: Configure NTP"
+  NIST_800-53:
+    - "AU-8: Time Stamps"
+  NIST_CSF:
+    - "DE.AE-1: Baseline of network operations established"
+  ISO27001:
+    - "A.12.4.4: Clock synchronisation"
+  CMMC:
+    - "AU.L2-3.3.7: Provide system capability to compare/synchronize clocks"
+match:
+  type: all_of
+  checks:
+    - type: condition
+      path: logging.ntp_enabled
+      condition:
+        type: is_true
+    - type: condition
+      path: logging.ntp_servers
+      condition:
+        type: is_not_empty
+remediation: >
+  Configure NTP with at least two time servers. FortiGate: 'config system ntp'
+  → 'set status enable' → 'set type custom' → edit entries with server addresses.
+  Use stratum 1 or 2 servers and prefer internal NTP infrastructure where available.

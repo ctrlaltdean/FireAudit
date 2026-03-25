@@ -1,0 +1,299 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fireaudit/ir/v1",
+  "title": "FireAudit Normalized Intermediate Representation",
+  "description": "Common schema for normalized firewall configuration across all supported vendors",
+  "type": "object",
+  "required": ["meta", "admin_access", "authentication", "logging", "firewall_policies", "interfaces"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Device metadata and identification",
+      "properties": {
+        "vendor": {"type": "string", "enum": ["fortigate", "paloalto", "cisco_asa", "cisco_ftd", "pfsense", "opnsense", "sophos_xg", "watchguard", "checkpoint"]},
+        "hostname": {"type": ["string", "null"]},
+        "model": {"type": ["string", "null"]},
+        "firmware_version": {"type": ["string", "null"]},
+        "serial_number": {"type": ["string", "null"]},
+        "config_timestamp": {"type": ["string", "null"]},
+        "source_file": {"type": ["string", "null"]}
+      },
+      "required": ["vendor"]
+    },
+    "admin_access": {
+      "type": "object",
+      "description": "Administrative access settings",
+      "properties": {
+        "management_protocols": {
+          "type": "array",
+          "description": "Enabled management protocols",
+          "items": {
+            "type": "object",
+            "properties": {
+              "protocol": {"type": "string", "enum": ["ssh", "telnet", "http", "https", "snmp", "netconf", "restconf"]},
+              "enabled": {"type": "boolean"},
+              "port": {"type": ["integer", "null"]},
+              "interfaces": {"type": "array", "items": {"type": "string"}},
+              "version": {"type": ["string", "null"]}
+            },
+            "required": ["protocol", "enabled"]
+          }
+        },
+        "ssh_settings": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "version": {"type": ["integer", "null"], "enum": [1, 2, null]},
+            "ciphers": {"type": "array", "items": {"type": "string"}},
+            "macs": {"type": "array", "items": {"type": "string"}},
+            "kex_algorithms": {"type": "array", "items": {"type": "string"}},
+            "idle_timeout_seconds": {"type": ["integer", "null"]}
+          }
+        },
+        "https_settings": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "tls_versions": {"type": "array", "items": {"type": "string"}},
+            "ciphers": {"type": "array", "items": {"type": "string"}},
+            "hsts_enabled": {"type": ["boolean", "null"]}
+          }
+        },
+        "snmp": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "version": {"type": ["string", "null"]},
+            "community_strings": {"type": "array", "items": {"type": "string"}},
+            "allowed_hosts": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "session_timeout_seconds": {"type": ["integer", "null"]},
+        "max_login_attempts": {"type": ["integer", "null"]},
+        "lockout_duration_seconds": {"type": ["integer", "null"]},
+        "trusted_hosts": {
+          "type": "array",
+          "description": "IP/CIDR ranges allowed to manage the device",
+          "items": {"type": "string"}
+        },
+        "banner": {"type": ["string", "null"]},
+        "banner_enabled": {"type": ["boolean", "null"]}
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "description": "Authentication and password policy settings",
+      "properties": {
+        "local_users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "username": {"type": "string"},
+              "privilege_level": {"type": ["integer", "string", "null"]},
+              "mfa_enabled": {"type": ["boolean", "null"]},
+              "password_hash_algorithm": {"type": ["string", "null"]},
+              "account_enabled": {"type": "boolean"}
+            },
+            "required": ["username", "account_enabled"]
+          }
+        },
+        "password_policy": {
+          "type": "object",
+          "properties": {
+            "min_length": {"type": ["integer", "null"]},
+            "require_uppercase": {"type": ["boolean", "null"]},
+            "require_lowercase": {"type": ["boolean", "null"]},
+            "require_numbers": {"type": ["boolean", "null"]},
+            "require_special": {"type": ["boolean", "null"]},
+            "max_age_days": {"type": ["integer", "null"]},
+            "min_age_days": {"type": ["integer", "null"]},
+            "history_count": {"type": ["integer", "null"]},
+            "lockout_threshold": {"type": ["integer", "null"]}
+          }
+        },
+        "remote_auth": {
+          "type": "object",
+          "properties": {
+            "radius_enabled": {"type": "boolean"},
+            "tacacs_enabled": {"type": "boolean"},
+            "ldap_enabled": {"type": "boolean"},
+            "servers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {"type": "string", "enum": ["radius", "tacacs+", "ldap", "ldaps"]},
+                  "host": {"type": "string"},
+                  "port": {"type": ["integer", "null"]}
+                }
+              }
+            }
+          }
+        },
+        "mfa_enabled_globally": {"type": ["boolean", "null"]},
+        "default_admin_account_exists": {"type": ["boolean", "null"]},
+        "default_admin_renamed": {"type": ["boolean", "null"]}
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging and audit trail configuration",
+      "properties": {
+        "syslog_servers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "host": {"type": "string"},
+              "port": {"type": ["integer", "null"]},
+              "protocol": {"type": ["string", "null"], "enum": ["udp", "tcp", "tls", null]},
+              "facility": {"type": ["string", "null"]},
+              "severity": {"type": ["string", "null"]}
+            },
+            "required": ["host"]
+          }
+        },
+        "local_logging_enabled": {"type": ["boolean", "null"]},
+        "log_traffic": {"type": ["boolean", "null"]},
+        "log_denied_traffic": {"type": ["boolean", "null"]},
+        "log_allowed_traffic": {"type": ["boolean", "null"]},
+        "log_authentication": {"type": ["boolean", "null"]},
+        "log_admin_actions": {"type": ["boolean", "null"]},
+        "log_system_events": {"type": ["boolean", "null"]},
+        "log_vpn": {"type": ["boolean", "null"]},
+        "log_retention_days": {"type": ["integer", "null"]},
+        "ntp_servers": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "ntp_enabled": {"type": ["boolean", "null"]}
+      }
+    },
+    "vpn": {
+      "type": "object",
+      "description": "VPN and tunnel configuration",
+      "properties": {
+        "ipsec_tunnels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "enabled": {"type": "boolean"},
+              "remote_gateway": {"type": ["string", "null"]},
+              "phase1": {
+                "type": "object",
+                "properties": {
+                  "encryption": {"type": "array", "items": {"type": "string"}},
+                  "authentication": {"type": "array", "items": {"type": "string"}},
+                  "dh_groups": {"type": "array", "items": {"type": "integer"}},
+                  "lifetime_seconds": {"type": ["integer", "null"]},
+                  "pfs_enabled": {"type": ["boolean", "null"]},
+                  "ike_version": {"type": ["integer", "null"], "enum": [1, 2, null]}
+                }
+              },
+              "phase2": {
+                "type": "object",
+                "properties": {
+                  "encryption": {"type": "array", "items": {"type": "string"}},
+                  "authentication": {"type": "array", "items": {"type": "string"}},
+                  "dh_groups": {"type": "array", "items": {"type": "integer"}},
+                  "lifetime_seconds": {"type": ["integer", "null"]},
+                  "pfs_enabled": {"type": ["boolean", "null"]}
+                }
+              },
+              "auth_method": {"type": ["string", "null"], "enum": ["psk", "certificate", "eap", null]}
+            },
+            "required": ["name", "enabled"]
+          }
+        },
+        "ssl_vpn": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "tls_versions": {"type": "array", "items": {"type": "string"}},
+            "ciphers": {"type": "array", "items": {"type": "string"}},
+            "mfa_required": {"type": ["boolean", "null"]},
+            "split_tunneling": {"type": ["boolean", "null"]},
+            "client_certificate_required": {"type": ["boolean", "null"]}
+          }
+        }
+      }
+    },
+    "firewall_policies": {
+      "type": "array",
+      "description": "Firewall access control policies/rules",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": ["string", "integer"]},
+          "name": {"type": ["string", "null"]},
+          "enabled": {"type": "boolean"},
+          "action": {"type": "string", "enum": ["allow", "deny", "drop", "reject", "inspect", "learn"]},
+          "source_zones": {"type": "array", "items": {"type": "string"}},
+          "destination_zones": {"type": "array", "items": {"type": "string"}},
+          "source_addresses": {"type": "array", "items": {"type": "string"}},
+          "destination_addresses": {"type": "array", "items": {"type": "string"}},
+          "services": {"type": "array", "items": {"type": "string"}},
+          "protocols": {"type": "array", "items": {"type": "string"}},
+          "source_ports": {"type": "array", "items": {"type": "string"}},
+          "destination_ports": {"type": "array", "items": {"type": "string"}},
+          "logging_enabled": {"type": ["boolean", "null"]},
+          "comment": {"type": ["string", "null"]},
+          "schedule": {"type": ["string", "null"]},
+          "nat_enabled": {"type": ["boolean", "null"]}
+        },
+        "required": ["id", "enabled", "action"]
+      }
+    },
+    "interfaces": {
+      "type": "array",
+      "description": "Network interfaces",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "type": {"type": ["string", "null"]},
+          "zone": {"type": ["string", "null"]},
+          "ip_address": {"type": ["string", "null"]},
+          "netmask": {"type": ["string", "null"]},
+          "enabled": {"type": "boolean"},
+          "management_access": {"type": "array", "items": {"type": "string"}},
+          "description": {"type": ["string", "null"]}
+        },
+        "required": ["name", "enabled"]
+      }
+    },
+    "network_objects": {
+      "type": "object",
+      "description": "Address and service objects referenced in policies",
+      "properties": {
+        "address_objects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "type": {"type": "string", "enum": ["host", "network", "range", "fqdn", "group", "any"]},
+              "value": {"type": ["string", "null"]}
+            },
+            "required": ["name", "type"]
+          }
+        },
+        "service_objects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "protocol": {"type": ["string", "null"]},
+              "port_range": {"type": ["string", "null"]}
+            },
+            "required": ["name"]
+          }
+        }
+      }
+    }
+  }
+}

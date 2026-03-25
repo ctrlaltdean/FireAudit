@@ -1,0 +1,37 @@
+rule_id: FW-ADM-004
+name: Administrative Session Timeout Must Be 10 Minutes or Less
+description: >
+  Idle administrative sessions must time out automatically to prevent
+  unauthorized access from unattended terminals. Maximum timeout is
+  10 minutes (600 seconds) per CIS guidelines.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.4: Configure session timeout"
+  NIST_800-53:
+    - "AC-11: Session Lock"
+    - "AC-12: Session Termination"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "AC.L2-3.1.10: Use session lock after period of inactivity"
+match:
+  type: all_of
+  checks:
+    - type: condition
+      path: admin_access.session_timeout_seconds
+      condition:
+        type: is_not_null
+    - type: condition
+      path: admin_access.session_timeout_seconds
+      condition:
+        type: lte
+        value: 600
+remediation: >
+  Set administrative session timeout to 10 minutes or less.
+  FortiGate: 'config system global' → 'set admintimeout 10'
+  (value is in minutes, so 10 = 600 seconds).

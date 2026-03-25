@@ -1,0 +1,25 @@
+rule_id: FW-ADM-006
+name: Login Banner Must Be Configured
+description: >
+  A pre-login warning banner is required for legal and compliance purposes.
+  The banner should state that unauthorized access is prohibited and that
+  the system is subject to monitoring.
+severity: low
+vendors:
+  - all
+frameworks:
+  NIST_800-53:
+    - "AC-8: System Use Notification"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "AC.L2-3.1.9: Provide security awareness training"
+match:
+  type: condition
+  path: admin_access.banner_enabled
+  condition:
+    type: is_true
+remediation: >
+  Configure a pre-login warning banner. FortiGate: 'config system global' →
+  'set pre-login-banner enable'. Set banner text via the GUI or CLI.
+  Banner should reference unauthorized access prohibition and monitoring notice.
