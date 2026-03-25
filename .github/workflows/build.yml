@@ -1,0 +1,151 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: write
+
+# ---------------------------------------------------------------------------
+# Test on every push/PR (fast, single platform)
+# ---------------------------------------------------------------------------
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest --tb=short -q
+
+  # ---------------------------------------------------------------------------
+  # Build binaries — only on version tags
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build ${{ matrix.asset_name }}
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: fireaudit.exe
+            asset_name: fireaudit-windows-x86_64.exe
+
+          - os: ubuntu-latest
+            artifact: fireaudit
+            asset_name: fireaudit-linux-x86_64
+
+          - os: macos-13         # Intel runner
+            artifact: fireaudit
+            asset_name: fireaudit-macos-x86_64
+
+          - os: macos-latest     # Apple Silicon (M-series) runner
+            artifact: fireaudit
+            asset_name: fireaudit-macos-arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Build binary
+        run: python build_exe.py
+
+      - name: Rename artifact to platform name
+        shell: bash
+        run: mv dist/${{ matrix.artifact }} dist/${{ matrix.asset_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: dist/${{ matrix.asset_name }}
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Package rules — for rules-only updates
+  # ---------------------------------------------------------------------------
+  package-rules:
+    name: Package rules archive
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create rules.zip
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          zip -r dist_rules/rules.zip rules/
+        shell: bash
+
+      - name: Create rules.zip (ensure dist_rules exists)
+        run: |
+          mkdir -p dist_rules
+          zip -r dist_rules/rules.zip rules/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rules.zip
+          path: dist_rules/rules.zip
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Create GitHub Release with all binaries attached
+  # ---------------------------------------------------------------------------
+  release:
+    name: Create GitHub Release
+    needs: [build, package-rules]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_assets/
+          merge-multiple: true
+
+      - name: Make Unix binaries executable
+        run: |
+          chmod +x release_assets/fireaudit-linux-x86_64 || true
+          chmod +x release_assets/fireaudit-macos-x86_64 || true
+          chmod +x release_assets/fireaudit-macos-arm64  || true
+
+      - name: List release assets
+        run: ls -lh release_assets/
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release_assets/fireaudit-windows-x86_64.exe
+            release_assets/fireaudit-linux-x86_64
+            release_assets/fireaudit-macos-x86_64
+            release_assets/fireaudit-macos-arm64
+            release_assets/rules.zip

@@ -27,14 +27,27 @@ from fireaudit.engine.evaluator import RuleEvaluator, build_report
 from fireaudit.output.html_report import render_html
 from fireaudit.output.json_report import render_json
 from fireaudit.wizard import run_wizard
+from fireaudit.updater import (
+    check_for_update,
+    fetch_latest_release,
+    apply_binary_update,
+    apply_rules_update,
+    effective_rules_dir,
+    current_version,
+    USER_RULES_DIR,
+)
 
 console = Console()
 
-# Default rules directory — respects FIREAUDIT_RULES_DIR for frozen exe bundles
+# Default rules directory resolution order:
+#   1. FIREAUDIT_RULES_DIR env var (set by frozen exe shim)
+#   2. ~/.fireaudit/rules/ if it exists and has rules (post-update user dir)
+#   3. Bundled rules/ directory
 import os as _os
-_DEFAULT_RULES_DIR = Path(
+_BUNDLED_RULES_DIR = Path(
     _os.environ.get("FIREAUDIT_RULES_DIR", str(Path(__file__).parent.parent / "rules"))
 )
+_DEFAULT_RULES_DIR = effective_rules_dir(_BUNDLED_RULES_DIR)
 
 
 # ---------------------------------------------------------------------------
@@ -58,6 +71,78 @@ def main(debug: bool) -> None:
 def wizard_cmd() -> None:
     """Interactive wizard — guided audit with no flags required."""
     run_wizard()
+
+
+# ---------------------------------------------------------------------------
+# update commands
+# ---------------------------------------------------------------------------
+
+@main.group("update")
+def update_group() -> None:
+    """Check for and apply application / rules updates."""
+
+
+@update_group.command("check")
+def update_check() -> None:
+    """Check whether a newer version is available."""
+    console.print(f"Current version: [bold]{current_version()}[/bold]")
+    with console.status("Checking GitHub for updates…"):
+        try:
+            release = check_for_update()
+        except Exception as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            sys.exit(1)
+
+    if release:
+        console.print(
+            f"[green]Update available:[/green] [bold]{release['tag_name']}[/bold]  "
+            f"— run [cyan]fireaudit update apply[/cyan] to install"
+        )
+        console.print(f"[dim]Release notes:[/dim] {release.get('html_url', '')}")
+    else:
+        console.print("[green]You are on the latest version.[/green]")
+
+
+@update_group.command("apply")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip confirmation prompt")
+def update_apply(yes: bool) -> None:
+    """Download and install the latest application binary."""
+    console.print(f"Current version: [bold]{current_version()}[/bold]")
+
+    with console.status("Fetching latest release info…"):
+        try:
+            release = fetch_latest_release()
+        except Exception as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            sys.exit(1)
+
+    latest_tag = release["tag_name"]
+    from fireaudit.updater import is_newer
+    if not is_newer(latest_tag):
+        console.print("[green]Already on the latest version.[/green]")
+        return
+
+    console.print(f"[bold]{latest_tag}[/bold] is available  (you have {current_version()})")
+    if not yes and not click.confirm("Download and install update?", default=True):
+        console.print("[yellow]Update cancelled.[/yellow]")
+        return
+
+    progress: list[int] = [0]
+
+    def _progress(downloaded: int, total: int) -> None:
+        if total and downloaded - progress[0] > 512 * 1024:
+            pct = int(downloaded / total * 100)
+            console.print(f"  [dim]{pct}%[/dim]", end="\r")
+            progress[0] = downloaded
+
+    with console.status(f"Downloading {latest_tag}…"):
+        try:
+            msg = apply_binary_update(release, progress_cb=_progress)
+        except Exception as exc:
+            console.print(f"[red]Update failed:[/red] {exc}")
+            sys.exit(1)
+
+    console.print(f"[green]{msg}[/green]")
 
 
 # ---------------------------------------------------------------------------
@@ -249,6 +334,63 @@ def rules_list(rules_dir: str | None, vendor: str | None, severity: str | None, 
 
     console.print(table)
     console.print(f"[dim]{len(rules)} rules[/dim]")
+
+    if USER_RULES_DIR.exists() and any(USER_RULES_DIR.rglob("*.yaml")):
+        console.print(f"[dim]Source: {USER_RULES_DIR} (user-updated)[/dim]")
+    else:
+        console.print(f"[dim]Source: {_DEFAULT_RULES_DIR} (bundled)[/dim]")
+
+
+@rules_group.command("update")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip confirmation prompt")
+@click.option("--tag", default=None, help="Specific release tag to pull rules from (default: latest)")
+def rules_update(yes: bool, tag: str | None) -> None:
+    """Download the latest rules from GitHub and install to ~/.fireaudit/rules/."""
+    with console.status("Fetching release info…"):
+        try:
+            if tag:
+                from fireaudit.updater import _github_get, GITHUB_API_RELEASE
+                release = _github_get(GITHUB_API_RELEASE.format(tag=tag))
+            else:
+                release = fetch_latest_release()
+        except Exception as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            sys.exit(1)
+
+    console.print(
+        f"Rules from [bold]{release['tag_name']}[/bold]  →  "
+        f"[cyan]{USER_RULES_DIR}[/cyan]"
+    )
+    if not yes and not click.confirm("Download and install rules?", default=True):
+        console.print("[yellow]Cancelled.[/yellow]")
+        return
+
+    with console.status("Downloading rules.zip…"):
+        try:
+            msg = apply_rules_update(release)
+        except Exception as exc:
+            console.print(f"[red]Rules update failed:[/red] {exc}")
+            sys.exit(1)
+
+    console.print(f"[green]{msg}[/green]")
+
+
+@rules_group.command("reset")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip confirmation prompt")
+def rules_reset(yes: bool) -> None:
+    """Remove user-installed rules and revert to bundled rules."""
+    if not USER_RULES_DIR.exists():
+        console.print("[dim]No user rules directory found — already using bundled rules.[/dim]")
+        return
+
+    console.print(f"This will delete [cyan]{USER_RULES_DIR}[/cyan] and revert to bundled rules.")
+    if not yes and not click.confirm("Proceed?", default=False):
+        console.print("[yellow]Cancelled.[/yellow]")
+        return
+
+    import shutil
+    shutil.rmtree(USER_RULES_DIR)
+    console.print("[green]User rules removed. Bundled rules are now active.[/green]")
 
 
 # ---------------------------------------------------------------------------
