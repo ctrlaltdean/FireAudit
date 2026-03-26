@@ -1,0 +1,42 @@
+rule_id: FW-POL-004
+name: Deny Rules Must Have Logging Enabled
+description: >
+  Deny and drop rules must have logging enabled so that blocked traffic is
+  recorded. Logging denied connections provides visibility into scanning activity,
+  attack attempts, and misconfigured applications. Silent drops provide no
+  security intelligence and hinder incident investigation.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.2: Log all denied connections"
+    - "CIS FW Benchmark 3.2: Log deny rule matches"
+  NIST_800-53:
+    - "AU-2: Event Logging"
+    - "AU-12: Audit Record Generation"
+    - "SI-4: System Monitoring"
+  ISO27001:
+    - "A.12.4.1: Event logging"
+  CMMC:
+    - "AU.L2-3.3.1: Create and retain audit logs"
+match:
+  type: foreach
+  path: firewall_policies
+  filter:
+    field: action
+    condition:
+      type: in
+      values:
+        - deny
+        - drop
+        - reject
+  checks:
+    - path: logging_enabled
+      condition:
+        type: is_true
+remediation: >
+  Enable logging on all deny and drop rules. FortiGate: In each 'config firewall
+  policy' deny entry, set 'set logtraffic all'. This ensures dropped packets
+  are forwarded to the configured log destinations. Without this, the global
+  deny rule produces no log entries.

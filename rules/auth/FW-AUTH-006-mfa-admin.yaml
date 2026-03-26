@@ -1,0 +1,33 @@
+rule_id: FW-AUTH-006
+name: Multi-Factor Authentication Must Be Required for Administrative Access
+description: >
+  Administrative accounts must require multi-factor authentication (MFA) to
+  significantly reduce the risk of credential compromise. Single-factor
+  password-only authentication for privileged accounts is insufficient against
+  phishing, credential stuffing, and password spray attacks.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.4: Require multi-factor authentication"
+  NIST_800-53:
+    - "IA-2: Identification and Authentication (Organizational Users)"
+    - "IA-2(1): Multi-Factor Authentication to Privileged Accounts"
+  NIST_CSF:
+    - "PR.AC-7: Users, devices, and other assets are authenticated"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "IA.L2-3.5.3: Use multi-factor authentication for local and network access"
+match:
+  type: condition
+  path: authentication.mfa_enabled_globally
+  condition:
+    type: is_true
+remediation: >
+  Enable multi-factor authentication for all administrative accounts.
+  FortiGate: 'config system admin' → for each admin entry, set
+  'set two-factor <method>' where method is fortitoken, email, or sms.
+  For global enforcement, integrate with FortiAuthenticator or configure
+  RADIUS/TACACS+ with MFA support.

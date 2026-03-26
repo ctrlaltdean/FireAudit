@@ -1,0 +1,41 @@
+rule_id: FW-MAN-009
+name: Remote Access VPN Must Enforce Endpoint Posture Checking
+description: >
+  VPN users connecting from unmanaged or compromised endpoints pose a significant
+  risk even when MFA is enforced. Endpoint posture checking verifies that connecting
+  devices meet minimum security requirements (OS patch level, AV status, disk
+  encryption) before granting network access. Posture policy configuration and
+  enforcement effectiveness require operational verification.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.5: Enforce endpoint compliance for VPN access"
+  NIST_800-53:
+    - "AC-17: Remote Access"
+    - "AC-19: Access Control for Mobile Devices"
+    - "SA-9: External System Services"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
+  ISO27001:
+    - "A.6.2.2: Teleworking"
+    - "A.9.1.2: Access to networks and network services"
+  CMMC:
+    - "AC.L2-3.1.12: Monitor and control remote access sessions"
+    - "AC.L2-3.1.20: Verify and control connections to external systems"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) Endpoint posture checks are configured for VPN access
+    (OS version, patch status, AV/EDR presence, disk encryption).
+    (2) Non-compliant endpoints are placed in a remediation VLAN or denied access.
+    (3) Posture policies are reviewed and updated when minimum requirements change.
+    (4) Personal/unmanaged device policy is defined and enforced.
+    (5) Posture check results are logged.
+remediation: >
+  Implement endpoint posture checking for VPN. FortiGate: Use FortiClient
+  EMS with endpoint compliance profiles and configure the SSL VPN portal to
+  require a compliant FortiClient. Define minimum requirements for OS patch
+  level, AV signature age, and application inventory. Non-compliant hosts
+  should receive network quarantine treatment.

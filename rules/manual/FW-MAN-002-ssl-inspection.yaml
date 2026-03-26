@@ -1,0 +1,35 @@
+rule_id: FW-MAN-002
+name: SSL/TLS Deep Inspection Must Be Configured for Outbound Traffic
+description: >
+  Encrypted outbound traffic (HTTPS, SMTPS, etc.) bypasses most security inspection
+  unless SSL/TLS deep inspection is configured. Malware, data exfiltration, and
+  command-and-control traffic frequently use encrypted channels. Deep inspection
+  policy coverage and certificate trust configuration require operational review.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 5.3: Enable SSL inspection"
+  NIST_800-53:
+    - "SC-7: Boundary Protection"
+    - "SI-4: System Monitoring"
+  ISO27001:
+    - "A.12.2.1: Controls against malware"
+    - "A.13.1.1: Network controls"
+  CMMC:
+    - "SI.L2-3.14.6: Monitor organizational systems"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) An SSL/TLS deep inspection profile is configured.
+    (2) The inspection profile is applied to outbound internet-facing policies
+    covering HTTPS traffic. (3) A trusted CA certificate is deployed to endpoints
+    for the firewall's SSL inspection certificate. (4) Exemptions for banking,
+    healthcare, and other sensitive categories are appropriately scoped.
+    (5) The inspection log is reviewed regularly.
+remediation: >
+  Configure SSL deep inspection. FortiGate: Create an SSL inspection profile
+  under 'config firewall ssl-ssh-profile'. Apply to outbound policies via
+  'set ssl-ssh-profile <profile-name>'. Deploy the firewall CA certificate
+  to all managed endpoints to prevent certificate warnings.

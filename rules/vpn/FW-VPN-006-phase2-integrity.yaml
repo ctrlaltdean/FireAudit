@@ -1,0 +1,38 @@
+rule_id: FW-VPN-006
+name: IPsec Phase 2 Must Not Use Weak Integrity Algorithms (MD5/SHA-1)
+description: >
+  IPsec Phase 2 (ESP/AH) must not use MD5 or SHA-1 as the integrity/authentication
+  algorithm. These algorithms are cryptographically weak and their use undermines
+  the confidentiality and integrity protection of VPN traffic. SHA-256 or stronger
+  must be specified in all Phase 2 proposals.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.1: Use strong cryptographic algorithms for VPN"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "SC-13: Cryptographic Protection"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms to prevent unauthorized disclosure"
+match:
+  type: not_exists_where
+  path: vpn.ipsec_tunnels
+  where:
+    enabled:
+      type: is_true
+    phase2.authentication:
+      type: intersects
+      values:
+        - md5
+        - sha1
+        - sha-1
+        - sha
+remediation: >
+  Replace MD5 and SHA-1 with SHA-256 or SHA-512 in all IPsec Phase 2 proposals.
+  FortiGate: 'config vpn ipsec phase2-interface' → 'set proposal
+  aes256-sha256 aes128-sha256'. Ensure the phase1-interface proposals also
+  use strong hashes. Coordinate updates with remote VPN peers.

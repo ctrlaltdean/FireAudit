@@ -1,0 +1,32 @@
+rule_id: FW-LOG-004
+name: Authentication Events Must Be Logged
+description: >
+  All authentication events — successful logins, failed login attempts, and
+  logouts — must be recorded. Authentication logs are essential for detecting
+  brute-force attacks, unauthorized access, and establishing accountability
+  for administrative actions.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.3: Log authentication events"
+  NIST_800-53:
+    - "AU-2: Event Logging"
+    - "AU-12: Audit Record Generation"
+    - "AC-7: Unsuccessful Logon Attempts"
+  ISO27001:
+    - "A.12.4.1: Event logging"
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "AU.L2-3.3.1: Create and retain audit logs"
+match:
+  type: condition
+  path: logging.log_authentication
+  condition:
+    type: is_true
+remediation: >
+  Enable authentication event logging. FortiGate: 'config log syslogd filter'
+  → 'set severity information'. Ensure 'config log setting' has
+  'set log-user-in-upper enable'. Authentication events are captured under
+  the event log category when syslog forwarding is configured.

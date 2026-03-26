@@ -59,6 +59,7 @@ class BaseParser(ABC):
                 "snmp": {
                     "enabled": False,
                     "version": None,
+                    "security_level": None,
                     "community_strings": [],
                     "allowed_hosts": [],
                 },

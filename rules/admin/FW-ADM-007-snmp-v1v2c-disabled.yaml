@@ -1,0 +1,47 @@
+rule_id: FW-ADM-007
+name: SNMP v1 and v2c Must Be Disabled
+description: >
+  SNMPv1 and SNMPv2c use community strings transmitted in cleartext, providing
+  no authentication or encryption. These versions are trivially sniffable and
+  susceptible to community string brute force. SNMPv3 with authentication and
+  privacy (authPriv) must be used exclusively.
+severity: critical
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.7: Disable insecure management protocols"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "AC-17: Remote Access"
+    - "IA-3: Device Identification and Authentication"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+    - "A.13.1.1: Network controls"
+  CMMC:
+    - "AC.L1-3.1.13: Employ cryptographic mechanisms to protect CUI"
+    - "IA.L2-3.5.3: Use multi-factor authentication"
+match:
+  type: any_of
+  checks:
+    - type: condition
+      path: admin_access.snmp.enabled
+      condition:
+        type: is_null
+    - type: condition
+      path: admin_access.snmp.enabled
+      condition:
+        type: is_false
+    - type: condition
+      path: admin_access.snmp.version
+      condition:
+        type: in
+        values:
+          - v3
+          - "3"
+          - snmpv3
+remediation: >
+  Disable SNMPv1 and SNMPv2c. Configure SNMPv3 with authPriv security level only.
+  FortiGate: Remove all 'config system snmp community' entries. Configure
+  'config system snmp user' with security-level auth-priv, auth-proto SHA256,
+  and priv-proto AES256. Restrict SNMP access to trusted management hosts.

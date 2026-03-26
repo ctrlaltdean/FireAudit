@@ -1,0 +1,33 @@
+rule_id: FW-LOG-003
+name: Denied Traffic Must Be Logged
+description: >
+  Dropped and rejected packets must be logged to provide visibility into
+  reconnaissance, scanning, and unauthorized access attempts. Without logging
+  of denied traffic, attacks and policy violations go undetected, significantly
+  impairing incident detection and response capabilities.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.2: Log all denied connections"
+  NIST_800-53:
+    - "AU-2: Event Logging"
+    - "AU-12: Audit Record Generation"
+    - "SI-4: System Monitoring"
+  NIST_CSF:
+    - "DE.CM-1: Network is monitored to detect potential cybersecurity events"
+  ISO27001:
+    - "A.12.4.1: Event logging"
+  CMMC:
+    - "AU.L2-3.3.1: Create and retain audit logs"
+match:
+  type: condition
+  path: logging.log_denied_traffic
+  condition:
+    type: is_true
+remediation: >
+  Enable logging for denied/dropped traffic. FortiGate: 'config log syslogd filter'
+  → 'set forward-traffic enable' → 'set local-traffic enable'. In firewall policies,
+  ensure deny rules have logging enabled. Also check 'config log setting' →
+  'set resolve-ip enable'.

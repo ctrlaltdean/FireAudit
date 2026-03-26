@@ -143,4 +143,146 @@ def test_build_report(ir, findings):
     assert "summary" in report
     assert "compliance_scores" in report
     assert report["summary"]["total_rules"] == len(findings)
-    assert report["summary"]["pass"] + report["summary"]["fail"] + report["summary"].get("error", 0) == len(findings)
+    accounted = (
+        report["summary"]["pass"]
+        + report["summary"]["fail"]
+        + report["summary"].get("error", 0)
+        + report["summary"].get("manual_check", 0)
+    )
+    assert accounted == len(findings)
+
+
+def test_manual_checks_not_in_compliance_scores(ir, findings):
+    report = build_report(ir, findings)
+    manual_count = report["summary"].get("manual_check", 0)
+    assert manual_count > 0, "expected some manual_check findings from rules/manual/"
+    # manual_check findings must not affect compliance percentage scores
+    for fw, data in report["compliance_scores"].items():
+        assert data["pass"] + data["fail"] <= len(findings) - manual_count
+
+
+def test_manual_check_status_in_findings(findings):
+    manual = [f for f in findings if f.status == "manual_check"]
+    assert len(manual) > 0
+    for f in manual:
+        assert f.rule_id.startswith("FW-MAN-")
+
+
+def test_not_exists_where_passes_clean_config():
+    """not_exists_where must pass when no item matches the where conditions."""
+    from fireaudit.engine.evaluator import RuleEvaluator
+    clean_ir = {
+        "vpn": {
+            "ipsec_tunnels": [
+                {
+                    "name": "GOOD-TUNNEL",
+                    "enabled": True,
+                    "phase1": {
+                        "encryption": ["aes256"],
+                        "authentication": ["sha256"],
+                        "dh_groups": [14],
+                        "ike_version": 2,
+                        "aggressive_mode": False,
+                    },
+                    "phase2": {"encryption": ["aes256"], "authentication": ["sha256"], "pfs_enabled": True},
+                }
+            ]
+        }
+    }
+    rule = {
+        "rule_id": "FW-VPN-001",
+        "name": "Test",
+        "severity": "critical",
+        "vendors": ["all"],
+        "frameworks": {},
+        "match": {
+            "type": "not_exists_where",
+            "path": "vpn.ipsec_tunnels",
+            "where": {
+                "enabled": {"type": "is_true"},
+                "phase1.encryption": {"type": "intersects", "values": ["des", "3des", "rc4"]},
+            },
+        },
+        "remediation": "",
+        "description": "",
+    }
+    evaluator = RuleEvaluator([rule])
+    results = evaluator.evaluate(clean_ir)
+    assert results[0].status == "pass"
+
+
+def test_not_exists_where_fails_when_match_found():
+    """not_exists_where must fail when a matching item is found."""
+    from fireaudit.engine.evaluator import RuleEvaluator
+    dirty_ir = {
+        "vpn": {
+            "ipsec_tunnels": [
+                {
+                    "name": "WEAK-TUNNEL",
+                    "enabled": True,
+                    "phase1": {
+                        "encryption": ["3des"],
+                        "authentication": ["md5"],
+                        "dh_groups": [2],
+                        "ike_version": 1,
+                        "aggressive_mode": False,
+                    },
+                    "phase2": {"encryption": ["3des"], "authentication": ["md5"], "pfs_enabled": False},
+                }
+            ]
+        }
+    }
+    rule = {
+        "rule_id": "FW-VPN-001",
+        "name": "Test",
+        "severity": "critical",
+        "vendors": ["all"],
+        "frameworks": {},
+        "match": {
+            "type": "not_exists_where",
+            "path": "vpn.ipsec_tunnels",
+            "where": {
+                "enabled": {"type": "is_true"},
+                "phase1.encryption": {"type": "intersects", "values": ["des", "3des", "rc4"]},
+            },
+        },
+        "remediation": "",
+        "description": "",
+    }
+    evaluator = RuleEvaluator([rule])
+    results = evaluator.evaluate(dirty_ir)
+    assert results[0].status == "fail"
+
+
+def test_exists_where_passes_when_match_found():
+    """exists_where must pass when a matching item is found."""
+    from fireaudit.engine.evaluator import RuleEvaluator
+    ir_with_deny = {
+        "firewall_policies": [
+            {"id": "1", "enabled": True, "action": "allow", "logging_enabled": True},
+            {"id": "99", "enabled": True, "action": "deny", "logging_enabled": True},
+        ]
+    }
+    rule = {
+        "rule_id": "FW-POL-003",
+        "name": "Test",
+        "severity": "critical",
+        "vendors": ["all"],
+        "frameworks": {},
+        "match": {
+            "type": "condition",
+            "path": "firewall_policies",
+            "condition": {
+                "type": "exists_where",
+                "where": {
+                    "action": {"type": "in", "values": ["deny", "drop", "reject"]},
+                    "enabled": {"type": "is_true"},
+                },
+            },
+        },
+        "remediation": "",
+        "description": "",
+    }
+    evaluator = RuleEvaluator([rule])
+    results = evaluator.evaluate(ir_with_deny)
+    assert results[0].status == "pass"

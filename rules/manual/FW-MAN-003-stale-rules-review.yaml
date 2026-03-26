@@ -1,0 +1,36 @@
+rule_id: FW-MAN-003
+name: Unused and Stale Firewall Rules Must Be Removed
+description: >
+  Firewall rule bases accumulate unused, shadowed, and overly permissive rules
+  over time as network changes occur without corresponding rule cleanup. Stale
+  rules expand the attack surface and complicate auditing. Hit-count analysis
+  and business owner review are required to identify rules that are no longer
+  needed — this cannot be determined from a static configuration snapshot alone.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 3.5: Remove unused firewall rules"
+  NIST_800-53:
+    - "CM-7: Least Functionality"
+    - "CM-6: Configuration Settings"
+  ISO27001:
+    - "A.12.1.2: Change management"
+    - "A.9.1.2: Access to networks and network services"
+  CMMC:
+    - "CM.L2-3.4.7: Restrict, disable, or prevent the use of nonessential programs"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) Review firewall rule hit counters — rules with zero hits over
+    90+ days should be investigated and removed or justified. (2) All allow rules
+    have a documented business owner. (3) Shadowed rules (rules that can never
+    be matched due to an earlier rule) are identified and removed.
+    (4) Temporary rules have expiry dates or change ticket references in comments.
+    (5) A formal rule review process is conducted at least annually.
+remediation: >
+  Conduct a periodic rule review using hit count data. FortiGate: Use the
+  Security Fabric > Policy & Objects > Policy Lookup or check hit counts in
+  the policy list view. Remove or disable rules with no hits. Establish a
+  change management process requiring ticket references in rule comments.

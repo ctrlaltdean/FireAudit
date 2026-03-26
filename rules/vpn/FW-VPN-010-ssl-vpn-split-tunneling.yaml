@@ -1,0 +1,45 @@
+rule_id: FW-VPN-010
+name: SSL VPN Split Tunneling Must Be Disabled or Restricted
+description: >
+  SSL VPN split tunneling routes only defined traffic through the VPN tunnel
+  while allowing the rest of the user's traffic to bypass the corporate network
+  and its security controls. This creates a dual-homed path that can be exploited
+  to pivot into the corporate network from a compromised endpoint. Split tunneling
+  should be disabled or tightly restricted to documented, necessary routes.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.4: Disable or restrict split tunneling"
+  NIST_800-53:
+    - "SC-7: Boundary Protection"
+    - "AC-17: Remote Access"
+  NIST_CSF:
+    - "PR.AC-5: Network integrity is protected"
+  ISO27001:
+    - "A.6.2.2: Teleworking"
+    - "A.13.1.1: Network controls"
+  CMMC:
+    - "AC.L2-3.1.12: Monitor and control remote access sessions"
+    - "SC.L1-3.13.1: Monitor, control, and protect communications"
+match:
+  type: any_of
+  checks:
+    - type: condition
+      path: vpn.ssl_vpn.enabled
+      condition:
+        type: is_false
+    - type: condition
+      path: vpn.ssl_vpn.enabled
+      condition:
+        type: is_null
+    - type: condition
+      path: vpn.ssl_vpn.split_tunneling
+      condition:
+        type: is_false
+remediation: >
+  Disable SSL VPN split tunneling to force all client traffic through the
+  corporate VPN and its security inspection. FortiGate: 'config vpn ssl settings'
+  → 'set split-tunneling disable'. If split tunneling is operationally required,
+  define explicit allowed routes and document the business justification.

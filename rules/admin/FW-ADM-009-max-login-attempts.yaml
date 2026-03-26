@@ -1,0 +1,39 @@
+rule_id: FW-ADM-009
+name: Administrative Login Lockout Must Be Configured
+description: >
+  Account lockout must be configured to limit brute-force attempts against
+  administrative credentials. After a defined number of failed attempts the
+  account or source IP must be locked out for a period of time. Unconfigured
+  lockout allows unlimited password guessing.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.5: Configure account lockout"
+  NIST_800-53:
+    - "AC-7: Unsuccessful Logon Attempts"
+    - "IA-5: Authenticator Management"
+  NIST_CSF:
+    - "PR.AC-1: Identities and credentials are managed"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "AC.L2-3.1.8: Limit unsuccessful logon attempts"
+match:
+  type: all_of
+  checks:
+    - type: condition
+      path: admin_access.max_login_attempts
+      condition:
+        type: is_not_null
+    - type: condition
+      path: admin_access.max_login_attempts
+      condition:
+        type: lte
+        value: 10
+remediation: >
+  Configure account lockout after no more than 10 failed login attempts
+  (5 or fewer recommended). FortiGate: 'config system global' →
+  'set admin-lockout-threshold 5' → 'set admin-lockout-duration 300'.
+  This locks out the source after 5 failures for 5 minutes.

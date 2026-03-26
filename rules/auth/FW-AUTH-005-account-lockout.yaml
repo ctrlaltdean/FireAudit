@@ -1,0 +1,36 @@
+rule_id: FW-AUTH-005
+name: Account Lockout Threshold Must Be 5 Attempts or Fewer
+description: >
+  A strict lockout threshold limits automated brute-force attacks. After a small
+  number of consecutive failed login attempts, the account or IP should be locked
+  to prevent further attempts. Thresholds above 5 provide insufficient protection
+  against rapid online password guessing.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.5: Configure account lockout"
+  NIST_800-53:
+    - "AC-7: Unsuccessful Logon Attempts"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "AC.L2-3.1.8: Limit unsuccessful logon attempts"
+match:
+  type: all_of
+  checks:
+    - type: condition
+      path: authentication.password_policy.lockout_threshold
+      condition:
+        type: is_not_null
+    - type: condition
+      path: authentication.password_policy.lockout_threshold
+      condition:
+        type: lte
+        value: 5
+remediation: >
+  Set account lockout to trigger after no more than 5 failed attempts.
+  FortiGate: 'config system global' → 'set admin-lockout-threshold 3'.
+  Also configure 'config system password-policy' for non-admin account lockout.
+  Set an appropriate lockout duration (minimum 5-15 minutes recommended).

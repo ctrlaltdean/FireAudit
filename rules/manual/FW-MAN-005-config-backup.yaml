@@ -1,0 +1,36 @@
+rule_id: FW-MAN-005
+name: Configuration Backups Must Be Scheduled, Tested, and Stored Securely
+description: >
+  Automated configuration backups are essential for rapid recovery from failures,
+  ransomware, or misconfiguration. Backup existence, schedule, encryption status,
+  offsite storage, and restoration testing cannot be verified from the running
+  configuration alone. This must be confirmed through operational review.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 6.1: Maintain configuration backups"
+  NIST_800-53:
+    - "CP-9: System Backup"
+    - "CP-10: System Recovery and Reconstitution"
+    - "CM-3: Configuration Change Control"
+  ISO27001:
+    - "A.12.3.1: Information backup"
+    - "A.17.1.2: Implementing information security continuity"
+  CMMC:
+    - "CP.L2-3.8.9: Protect backup CUI at storage locations"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) Automated configuration backups are scheduled (daily recommended).
+    (2) Backups are stored in a location separate from the firewall (offsite or cloud).
+    (3) Backup files are encrypted and access-controlled.
+    (4) Backup restoration has been tested within the past 6 months.
+    (5) Backups are retained for a minimum period consistent with policy (90 days recommended).
+    (6) Backup jobs are monitored for failures with alerting configured.
+remediation: >
+  Configure automated backup exports. FortiGate: Use FortiManager, scripts via
+  the REST API, or the 'exec backup config' command scheduled via cron or
+  automation stitches. Encrypt backup files and store them in a separate
+  location from the firewall. Document and periodically test the restoration procedure.

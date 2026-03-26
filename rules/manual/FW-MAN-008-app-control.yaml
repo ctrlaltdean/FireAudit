@@ -1,0 +1,36 @@
+rule_id: FW-MAN-008
+name: Application Control Policy Must Be Configured and Enforced
+description: >
+  Application control identifies and enforces policy on network applications
+  regardless of port. This prevents unauthorized application use (P2P, anonymizers,
+  tunneling tools) and limits the attack surface. Application control profile
+  coverage, category assignments, and exception justifications require
+  operational review beyond what static configuration analysis can determine.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 5.2: Enable application awareness"
+  NIST_800-53:
+    - "CM-7: Least Functionality"
+    - "SC-7: Boundary Protection"
+  ISO27001:
+    - "A.9.1.2: Access to networks and network services"
+    - "A.13.1.1: Network controls"
+  CMMC:
+    - "CM.L2-3.4.7: Restrict, disable, or prevent the use of nonessential programs"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) Application control profiles are applied to internet-facing policies.
+    (2) High-risk application categories (P2P, anonymizers, crypto-mining, remote
+    access tools) are blocked. (3) Exceptions are documented with business justification.
+    (4) Application signature database is kept up to date.
+    (5) Application control logs are reviewed for policy violations.
+remediation: >
+  Configure and apply application control profiles. FortiGate: Create an
+  application control sensor under 'config application list'. Block categories
+  such as P2P, proxy/anonymizer, and high-risk apps. Apply to outbound policies
+  via 'set application-list <sensor-name>'. Review application logs under
+  FortiView > Applications.

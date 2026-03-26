@@ -23,15 +23,13 @@ match:
   where:
     enabled:
       type: is_true
-    phase1:
-      type: list_any
-      condition:
-        type: intersects
-        values:
-          - des
-          - "3des"
-          - "rc4"
-          - "null"
+    phase1.encryption:
+      type: intersects
+      values:
+        - des
+        - "3des"
+        - "rc4"
+        - "null"
 remediation: >
   Replace weak encryption algorithms with AES-256 or AES-128.
   FortiGate phase1-interface: 'set proposal aes256-sha256 aes128-sha256'.

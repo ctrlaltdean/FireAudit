@@ -1,0 +1,46 @@
+rule_id: FW-ADM-008
+name: HTTPS Management Must Use TLS 1.2 or Higher
+description: >
+  The HTTPS management interface must not accept TLS 1.0 or TLS 1.1 connections.
+  Both versions are deprecated (RFC 8996) and vulnerable to known attacks including
+  POODLE, BEAST, and SWEET32. TLS 1.2 with strong cipher suites or TLS 1.3 must
+  be enforced.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.6: Use strong encryption for management access"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "SC-17: Public Key Infrastructure Certificates"
+  NIST_CSF:
+    - "PR.DS-2: Data-in-transit is protected"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+match:
+  type: any_of
+  checks:
+    - type: condition
+      path: admin_access.https_settings.tls_versions
+      condition:
+        type: is_null
+    - type: condition
+      path: admin_access.https_settings.tls_versions
+      condition:
+        type: is_empty
+    - type: condition
+      path: admin_access.https_settings.tls_versions
+      condition:
+        type: not_intersects
+        values:
+          - TLSv1.0
+          - TLSv1.1
+          - tlsv1.0
+          - tlsv1.1
+remediation: >
+  Configure HTTPS management to accept TLS 1.2 minimum, preferably TLS 1.3 only.
+  FortiGate: 'config system global' → 'set admin-https-ssl-versions tlsv1-2 tlsv1-3'.
+  Remove tlsv1-0 and tlsv1-1 from allowed versions.

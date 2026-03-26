@@ -64,6 +64,7 @@
           "properties": {
             "enabled": {"type": "boolean"},
             "version": {"type": ["string", "null"]},
+            "security_level": {"type": ["string", "null"], "description": "SNMPv3 security level: auth-priv, auth-no-priv, or no-auth-no-priv"},
             "community_strings": {"type": "array", "items": {"type": "string"}},
             "allowed_hosts": {"type": "array", "items": {"type": "string"}}
           }
@@ -190,7 +191,8 @@
                   "dh_groups": {"type": "array", "items": {"type": "integer"}},
                   "lifetime_seconds": {"type": ["integer", "null"]},
                   "pfs_enabled": {"type": ["boolean", "null"]},
-                  "ike_version": {"type": ["integer", "null"], "enum": [1, 2, null]}
+                  "ike_version": {"type": ["integer", "null"], "enum": [1, 2, null]},
+                  "aggressive_mode": {"type": ["boolean", "null"], "description": "True if IKEv1 aggressive mode is enabled (insecure)"}
                 }
               },
               "phase2": {

@@ -1,0 +1,36 @@
+rule_id: FW-MAN-012
+name: Anti-Spoofing (uRPF) Must Be Enabled on WAN Interfaces
+description: >
+  Unicast Reverse Path Forwarding (uRPF) or equivalent anti-spoofing controls
+  prevent the firewall from forwarding packets with source IP addresses that
+  could not have arrived on the ingress interface. Without anti-spoofing,
+  attackers can forge source addresses for DDoS amplification and to bypass
+  IP-based access controls. Anti-spoofing configuration varies significantly
+  by vendor and is not always exposed in the normalized IR.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 3.6: Enable anti-spoofing controls"
+  NIST_800-53:
+    - "SC-7: Boundary Protection"
+    - "SI-4: System Monitoring"
+  ISO27001:
+    - "A.13.1.1: Network controls"
+  CMMC:
+    - "SC.L1-3.13.1: Monitor, control, and protect communications"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) Anti-spoofing or uRPF is enabled on all WAN/untrusted interfaces.
+    (2) Bogon/martian address filtering is enabled (rejecting packets with private,
+    loopback, or reserved source addresses from external interfaces).
+    (3) Review the interface configuration for anti-spoofing settings.
+    FortiGate: Check 'config system interface' for each WAN interface —
+    'src-check enable' is the anti-spoofing setting.
+remediation: >
+  Enable anti-spoofing on all WAN interfaces. FortiGate: In 'config system
+  interface' for each WAN interface, set 'set src-check enable'. Also configure
+  bogon route filtering by adding null routes for private ranges on the WAN
+  routing table or using RPF strict mode. Review zone-based spoofing settings.

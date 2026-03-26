@@ -1,0 +1,36 @@
+rule_id: FW-VPN-008
+name: IKEv1 Aggressive Mode Must Be Disabled
+description: >
+  IKEv1 aggressive mode sends the initiator's identity and the hash of the
+  pre-shared key in the first two messages of the negotiation, before the
+  secure channel is established. This allows an attacker to capture the PSK
+  hash and perform an offline dictionary attack. IKEv1 main mode or IKEv2
+  (preferred) must be used for all IPsec VPN tunnels.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.2: Disable IKE aggressive mode"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "SC-13: Cryptographic Protection"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+match:
+  type: not_exists_where
+  path: vpn.ipsec_tunnels
+  where:
+    enabled:
+      type: is_true
+    phase1.aggressive_mode:
+      type: is_true
+remediation: >
+  Disable IKEv1 aggressive mode on all tunnels. FortiGate:
+  'config vpn ipsec phase1-interface' → for any entry with
+  'set mode aggressive', change to 'set mode main'. Verify with
+  the remote peer that main mode is supported. Prefer migrating
+  all tunnels to IKEv2 (see FW-VPN-002) which eliminates this
+  vulnerability entirely.

@@ -1,0 +1,39 @@
+rule_id: FW-MAN-001
+name: IPS/IDS Signatures and Profiles Must Be Reviewed and Active
+description: >
+  Intrusion Prevention System (IPS) and Intrusion Detection System (IDS) profiles
+  must be enabled on internet-facing interfaces and regularly updated. Signature
+  currency and profile assignment cannot be fully verified from static configuration
+  alone — signature update schedules, profile coverage, and active threat monitoring
+  require operational verification.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 5.1: Enable and configure IPS"
+  NIST_800-53:
+    - "SI-3: Malicious Code Protection"
+    - "SI-4: System Monitoring"
+    - "SI-10: Information Input Validation"
+  NIST_CSF:
+    - "DE.CM-1: Network is monitored to detect potential cybersecurity events"
+  ISO27001:
+    - "A.12.2.1: Controls against malware"
+    - "A.12.6.1: Management of technical vulnerabilities"
+  CMMC:
+    - "SI.L1-3.14.2: Provide protection from malicious code"
+    - "SI.L2-3.14.6: Monitor organizational systems to detect attacks"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) IPS/IDS profiles are applied to all internet-facing firewall policies.
+    (2) Signature database is set to update automatically (daily or more frequently).
+    (3) Signatures were last updated within the past 7 days.
+    (4) IPS is configured in prevention (blocking) mode, not detection-only.
+    (5) Alert notifications are configured for high/critical IPS events.
+remediation: >
+  Enable IPS profiles on all internet-facing allow policies. Configure automatic
+  signature updates. FortiGate: 'config ips sensor' → create or assign an IPS sensor
+  to policies via 'set ips-sensor'. Check update schedule under
+  'config system autoupdate schedule'.

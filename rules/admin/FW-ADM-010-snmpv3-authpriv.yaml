@@ -1,0 +1,45 @@
+rule_id: FW-ADM-010
+name: SNMPv3 Must Use authPriv Security Level (Authentication and Encryption)
+description: >
+  When SNMPv3 is configured, it must use the authPriv security level, which
+  provides both authentication (HMAC-MD5 or HMAC-SHA) and privacy/encryption
+  (AES or DES). Using auth-no-priv exposes SNMP traffic to eavesdropping.
+  Using no-auth-no-priv provides no security over v1/v2c. Only authPriv with
+  SHA-256+ for authentication and AES-128+ for encryption is acceptable.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.7: Configure SNMPv3 with encryption"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "IA-3: Device Identification and Authentication"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+    - "A.13.1.1: Network controls"
+  CMMC:
+    - "AC.L1-3.1.13: Employ cryptographic mechanisms to protect CUI"
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+match:
+  type: any_of
+  checks:
+    - type: condition
+      path: admin_access.snmp.enabled
+      condition:
+        type: is_null
+    - type: condition
+      path: admin_access.snmp.enabled
+      condition:
+        type: is_false
+    - type: condition
+      path: admin_access.snmp.security_level
+      condition:
+        type: eq
+        value: auth-priv
+remediation: >
+  Configure SNMPv3 users with authPriv security level only. FortiGate:
+  'config system snmp user' → for each user entry, set
+  'set security-level auth-priv' → 'set auth-proto sha256' →
+  'set priv-proto aes256'. Remove any users with auth-no-priv or
+  no-auth-no-priv. Also remove all SNMPv1/v2c community entries.

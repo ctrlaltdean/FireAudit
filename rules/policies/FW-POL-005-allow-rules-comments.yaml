@@ -1,0 +1,40 @@
+rule_id: FW-POL-005
+name: All Allow Rules Must Have a Descriptive Comment
+description: >
+  Each allow rule should have a comment or description explaining its business
+  purpose, the owner, and the date created or last reviewed. Undocumented rules
+  accumulate over time and become difficult to validate during audits or when
+  assessing whether a rule is still required.
+severity: low
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 3.4: Document firewall rules"
+  NIST_800-53:
+    - "CM-6: Configuration Settings"
+    - "CM-7: Least Functionality"
+  ISO27001:
+    - "A.12.1.1: Documented operating procedures"
+  CMMC:
+    - "CM.L2-3.4.1: Establish and maintain baseline configurations"
+match:
+  type: foreach
+  path: firewall_policies
+  filter:
+    field: action
+    condition:
+      type: eq
+      value: allow
+  checks:
+    - path: comment
+      condition:
+        type: is_not_null
+    - path: comment
+      condition:
+        type: is_not_empty
+remediation: >
+  Add descriptive comments to all allow rules documenting their business purpose.
+  FortiGate: In each 'config firewall policy' allow entry, set
+  'set comments "Purpose: <description> | Owner: <team> | Date: <YYYY-MM-DD>"'.
+  Establish a naming and commenting convention and enforce it during change management.

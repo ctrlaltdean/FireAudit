@@ -5,9 +5,9 @@ Offline firewall configuration auditing tool with multi-vendor support and compl
 ## Features
 
 - **9 vendors supported**: FortiGate, Palo Alto, Cisco ASA/FTD, pfSense, OPNsense, SonicWall, Sophos XG, WatchGuard
-- **14 built-in audit rules** covering admin access, authentication, logging, VPN, and firewall policies
+- **37 audit rules** — 24 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
 - **4 compliance frameworks**: CIS, NIST 800-53, ISO 27001, CMMC/DFARS
-- **HTML and JSON report output** with per-framework compliance scores
+- **HTML and JSON report output** with per-framework compliance scores and a dedicated manual checks section
 - **Interactive wizard mode** — no CLI flags required
 - **Fully offline** — no external API calls, safe for air-gapped environments
 - **Standalone Windows exe** — no Python installation required
@@ -59,24 +59,86 @@ fireaudit parse -c firewall.conf -v fortigate -o ir.json
 
 Each rule describes a **required** security configuration. Severity indicates how critical the finding is when a rule **fails** (i.e. when the requirement is not met).
 
+### Automated Checks (24 rules)
+
+#### Administration
 | Rule ID | Requirement | Severity if Failed |
-|---------|-------------|--------------------|
-| FW-ADM-001 | HTTP management must be disabled | High |
-| FW-ADM-002 | Telnet management must be disabled | High |
-| FW-ADM-003 | SSH must use version 2 only | Medium |
+|---------|-------------|---------------------|
+| FW-ADM-001 | HTTP management must be disabled | Critical |
+| FW-ADM-002 | Telnet management must be disabled | Critical |
+| FW-ADM-003 | SSH must use version 2 only | High |
 | FW-ADM-004 | Administrative session timeout must be 10 minutes or less | Medium |
-| FW-ADM-005 | Administrative access must be restricted to trusted hosts | Medium |
+| FW-ADM-005 | Administrative access must be restricted to trusted hosts | High |
 | FW-ADM-006 | Login banner must be configured | Low |
+| FW-ADM-007 | SNMP v1 and v2c must be disabled | Critical |
+| FW-ADM-008 | HTTPS management must use TLS 1.2 or higher | High |
+| FW-ADM-009 | Administrative login lockout must be configured | High |
+| FW-ADM-010 | SNMPv3 must use authPriv security level | High |
+
+#### Authentication
+| Rule ID | Requirement | Severity if Failed |
+|---------|-------------|---------------------|
 | FW-AUTH-001 | Minimum password length must be 12 characters or more | High |
 | FW-AUTH-002 | Default 'admin' account must be renamed or disabled | High |
+| FW-AUTH-003 | Password complexity requirements must be enforced | Medium |
+| FW-AUTH-004 | Password history must prevent reuse of last 5 passwords | Medium |
+| FW-AUTH-005 | Account lockout threshold must be 5 attempts or fewer | High |
+| FW-AUTH-006 | Multi-factor authentication must be required for administrative access | High |
+| FW-AUTH-007 | Centralized authentication (RADIUS or TACACS+) must be configured | Medium |
+
+#### Logging
+| Rule ID | Requirement | Severity if Failed |
+|---------|-------------|---------------------|
 | FW-LOG-001 | Remote syslog server must be configured | High |
 | FW-LOG-002 | NTP must be configured for accurate log timestamps | Medium |
+| FW-LOG-003 | Denied traffic must be logged | High |
+| FW-LOG-004 | Authentication events must be logged | Medium |
+| FW-LOG-005 | Administrative configuration changes must be logged | Medium |
+| FW-LOG-006 | Syslog must use encrypted transport (TLS) | Medium |
+| FW-LOG-007 | Multiple syslog servers should be configured for redundancy | Low |
+
+#### Firewall Policies
+| Rule ID | Requirement | Severity if Failed |
+|---------|-------------|---------------------|
 | FW-POL-001 | No unrestricted any-to-any allow policies | Critical |
 | FW-POL-002 | All allow policies must have logging enabled | High |
+| FW-POL-003 | An explicit deny rule must exist in the policy | Critical |
+| FW-POL-004 | Deny rules must have logging enabled | Medium |
+| FW-POL-005 | All allow rules must have a descriptive comment | Low |
+
+#### VPN
+| Rule ID | Requirement | Severity if Failed |
+|---------|-------------|---------------------|
 | FW-VPN-001 | IPsec VPN must not use weak encryption algorithms (3DES/DES) | Critical |
 | FW-VPN-002 | IPsec VPN tunnels must use IKEv2 | High |
 | FW-VPN-003 | IPsec VPN must not use weak Diffie-Hellman groups (1/2/5) | High |
 | FW-VPN-004 | SSL VPN must not accept TLS 1.0 or 1.1 | High |
+| FW-VPN-005 | IPsec Phase 1 must not use weak integrity algorithms (MD5/SHA-1) | Critical |
+| FW-VPN-006 | IPsec Phase 2 must not use weak integrity algorithms (MD5/SHA-1) | High |
+| FW-VPN-007 | IPsec VPN must have Perfect Forward Secrecy enabled | High |
+| FW-VPN-008 | IKEv1 aggressive mode must be disabled | High |
+| FW-VPN-009 | SSL VPN must require multi-factor authentication | High |
+| FW-VPN-010 | SSL VPN split tunneling must be disabled or restricted | Medium |
+
+### Manual Verification Checklist (13 items)
+
+The following checks require human review and cannot be determined from static configuration analysis alone. They appear as a dedicated section in the HTML report.
+
+| Rule ID | Check |
+|---------|-------|
+| FW-MAN-001 | IPS/IDS signatures and profiles must be reviewed and active |
+| FW-MAN-002 | SSL/TLS deep inspection must be configured for outbound traffic |
+| FW-MAN-003 | Unused and stale firewall rules must be removed |
+| FW-MAN-004 | Firewall firmware must be on a supported and patched version |
+| FW-MAN-005 | Configuration backups must be scheduled, tested, and stored securely |
+| FW-MAN-006 | High availability failover must be tested periodically |
+| FW-MAN-007 | DoS/DDoS protection profiles must be configured |
+| FW-MAN-008 | Application control policy must be configured and enforced |
+| FW-MAN-009 | Remote access VPN must enforce endpoint posture checking |
+| FW-MAN-010 | Physical access to firewall hardware must be restricted |
+| FW-MAN-011 | IKEv1 aggressive mode must be confirmed disabled (cross-vendor) |
+| FW-MAN-012 | Anti-spoofing (uRPF) must be enabled on WAN interfaces |
+| FW-MAN-013 | Firewall rules must be reviewed against business requirements annually |
 
 ## Compliance Frameworks
 

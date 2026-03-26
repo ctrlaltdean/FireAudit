@@ -1,0 +1,39 @@
+rule_id: FW-MAN-010
+name: Physical Access to Firewall Hardware Must Be Restricted
+description: >
+  Physical access to firewall hardware can bypass all logical security controls.
+  An attacker with physical access can connect to the console port, perform
+  a factory reset, boot from external media, or extract configuration data.
+  Physical security controls are entirely outside the scope of configuration
+  file analysis and require site inspection or documented policy review.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.1: Secure physical access to firewall hardware"
+  NIST_800-53:
+    - "PE-2: Physical Access Authorizations"
+    - "PE-3: Physical Access Control"
+    - "PE-6: Monitoring Physical Access"
+  ISO27001:
+    - "A.11.1.1: Physical security perimeter"
+    - "A.11.1.2: Physical entry controls"
+    - "A.11.2.1: Equipment siting and protection"
+  CMMC:
+    - "PE.L1-3.10.1: Limit physical access to organizational systems"
+    - "PE.L1-3.10.3: Escort visitors and monitor visitor activity"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) The firewall is located in a locked rack or server room with
+    access controls (card reader, key, or biometric). (2) Physical access is
+    restricted to authorized personnel only with an access log. (3) Console
+    port access requires authentication and a separate password from the
+    management interface. (4) USB ports are disabled or physically blocked.
+    (5) Environmental controls (temperature, humidity) are monitored.
+remediation: >
+  Ensure firewalls are installed in physically secured data center racks with
+  controlled access. Disable USB ports in the device configuration where
+  supported. Configure a console port password separate from the management
+  password. Review physical access logs periodically.

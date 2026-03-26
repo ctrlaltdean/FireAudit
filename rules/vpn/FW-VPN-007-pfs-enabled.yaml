@@ -1,0 +1,36 @@
+rule_id: FW-VPN-007
+name: IPsec VPN Must Have Perfect Forward Secrecy Enabled
+description: >
+  Perfect Forward Secrecy (PFS) ensures that session keys are not derivable
+  from long-term key material. Without PFS, compromise of the IKE master key
+  could allow decryption of all past and future IPsec traffic. PFS should be
+  enabled on all IPsec Phase 2 configurations using DH group 14 or higher.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.2: Enable Perfect Forward Secrecy"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "SC-13: Cryptographic Protection"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+match:
+  type: foreach
+  path: vpn.ipsec_tunnels
+  filter:
+    field: enabled
+    condition:
+      type: is_true
+  checks:
+    - path: phase2.pfs_enabled
+      condition:
+        type: is_true
+remediation: >
+  Enable PFS on all IPsec Phase 2 configurations with DH group 14 or higher.
+  FortiGate: 'config vpn ipsec phase2-interface' → 'set pfs enable' →
+  'set dhgrp 14 19 20 21'. Ensure phase1 also uses a strong DH group.
+  PFS requires both peers to support it — coordinate with remote endpoints.

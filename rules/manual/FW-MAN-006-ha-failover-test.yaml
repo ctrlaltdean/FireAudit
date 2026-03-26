@@ -1,0 +1,36 @@
+rule_id: FW-MAN-006
+name: High Availability Failover Must Be Tested Periodically
+description: >
+  Firewall HA configuration may appear correct in the static configuration but
+  fail to operate properly during an actual failover event due to licensing issues,
+  state synchronization problems, or network path issues. Failover functionality
+  must be tested under controlled conditions to confirm correct behavior.
+severity: low
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 6.2: Test high availability configuration"
+  NIST_800-53:
+    - "CP-4: Contingency Plan Testing"
+    - "CP-10: System Recovery and Reconstitution"
+    - "SA-8: Security and Privacy Engineering Principles"
+  ISO27001:
+    - "A.17.1.3: Verify, review, and evaluate information security continuity"
+    - "A.17.2.1: Availability of information processing facilities"
+  CMMC:
+    - "CP.L2-3.6.2: Test organizational incident response capabilities"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) HA failover has been tested within the past 6 months.
+    (2) Failover time meets the defined RTO (Recovery Time Objective).
+    (3) Session state synchronization is functioning correctly (sessions survive failover).
+    (4) VPN tunnels and dynamic routing re-establish correctly after failover.
+    (5) Failover test results are documented and any issues resolved.
+remediation: >
+  Schedule and conduct periodic HA failover tests. FortiGate HA: Execute
+  'diagnose sys ha reset-uptime' on the primary to trigger a controlled
+  failover. Verify the secondary takes over, monitor recovery time, and
+  verify all services resume. Document the test outcome and remediate any
+  issues found before the next test cycle.

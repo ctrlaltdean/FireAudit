@@ -320,6 +320,20 @@ class RuleEvaluator:
         rule_id = rule["rule_id"]
         match_spec = rule["match"]
 
+        # Manual checks are never automated — always emit a manual_check finding
+        if match_spec.get("type") == "manual":
+            return Finding(
+                rule_id=rule_id,
+                name=rule["name"],
+                severity=rule.get("severity", "info"),
+                status="manual_check",
+                description=rule.get("description", ""),
+                remediation=rule.get("remediation", ""),
+                frameworks=rule.get("frameworks", {}),
+                details=match_spec.get("guidance", ""),
+                source_rule_file=rule.get("_source_file", ""),
+            )
+
         try:
             status, details, affected_paths, affected_values = self._apply_match(match_spec, ir)
         except Exception as exc:
@@ -401,6 +415,56 @@ class RuleEvaluator:
             passed = len(failing) == 0
             return passed, "unexpected passing checks: " + "; ".join(failing) if not passed else "none matched (good)", [], []
 
+        elif match_type in ("exists_where", "not_exists_where"):
+            list_path = match.get("path", "")
+            items = resolve_path(ir, list_path) or []
+            where = match.get("where", {})
+
+            if not isinstance(items, list):
+                # Path didn't resolve to a list — nothing to find
+                passed = match_type == "not_exists_where"
+                return passed, "path did not resolve to a list", [], []
+
+            matched_items: list[tuple[int, dict]] = []
+            for idx, item in enumerate(items):
+                if not isinstance(item, dict):
+                    continue
+                item_match = True
+                for field_key, sub_cond in where.items():
+                    # Support dotted paths within the item (e.g. "phase1.encryption")
+                    if "." in field_key:
+                        field_val = _resolve(item, _split_path(field_key))
+                    else:
+                        field_val = item.get(field_key)
+                    cond_passed, _ = self._cond_checker.check(sub_cond, field_val, field_key)
+                    if not cond_passed:
+                        item_match = False
+                        break
+                if item_match:
+                    matched_items.append((idx, item))
+
+            found = len(matched_items) > 0
+            if match_type == "not_exists_where":
+                passed = not found
+                if not passed:
+                    names = [str(item.get("name", idx)) for idx, item in matched_items[:5]]
+                    detail = f"Found {len(matched_items)} offending item(s): {', '.join(names)}"
+                    ap = [f"{list_path}[{item.get('name', idx)}]" for idx, item in matched_items[:5]]
+                    av: list[Any] = [item.get("name", item) for _, item in matched_items[:5]]
+                else:
+                    detail = "no matching items found (good)"
+                    ap, av = [], []
+            else:  # exists_where
+                passed = found
+                if passed:
+                    names = [str(item.get("name", idx)) for idx, item in matched_items[:5]]
+                    detail = f"Found {len(matched_items)} matching item(s): {', '.join(names)}"
+                    ap, av = [], []
+                else:
+                    detail = "no items matched where conditions"
+                    ap, av = [], []
+            return passed, detail, ap, av
+
         elif match_type == "foreach":
             # Evaluate checks against each item in a list path
             list_path = match.get("path", "")
@@ -465,11 +529,13 @@ def build_report(
     hostname = ir.get("meta", {}).get("hostname", "unknown")
 
     total = len(findings)
-    by_status: dict[str, int] = {"pass": 0, "fail": 0, "error": 0, "not_applicable": 0}
+    by_status: dict[str, int] = {"pass": 0, "fail": 0, "error": 0, "not_applicable": 0, "manual_check": 0}
     by_severity: dict[str, dict] = {}
 
     for f in findings:
         by_status[f.status] = by_status.get(f.status, 0) + 1
+        if f.status == "manual_check":
+            continue  # manual checks are not included in severity/compliance scoring
         if f.status == "fail":
             by_severity.setdefault(f.severity, {"pass": 0, "fail": 0})
             by_severity[f.severity]["fail"] += 1
@@ -477,9 +543,11 @@ def build_report(
             by_severity.setdefault(f.severity, {"pass": 0, "fail": 0})
             by_severity[f.severity]["pass"] += 1
 
-    # Per-framework compliance scores
+    # Per-framework compliance scores (manual checks excluded)
     framework_scores: dict[str, dict] = {}
     for f in findings:
+        if f.status == "manual_check":
+            continue
         for fw, controls in f.frameworks.items():
             if framework_filter and fw.lower() != framework_filter.lower():
                 continue

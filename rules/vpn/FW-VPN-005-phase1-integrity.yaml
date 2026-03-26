@@ -1,0 +1,39 @@
+rule_id: FW-VPN-005
+name: IPsec Phase 1 Must Not Use Weak Integrity Algorithms (MD5/SHA-1)
+description: >
+  IKE Phase 1 must not use MD5 or SHA-1 for integrity/authentication hashing.
+  MD5 is cryptographically broken. SHA-1 is deprecated (RFC 6194) and practically
+  vulnerable to collision attacks. SHA-256 or stronger must be used for all
+  IKE Phase 1 proposals.
+severity: critical
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.1: Use strong cryptographic algorithms for VPN"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "SC-13: Cryptographic Protection"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms to prevent unauthorized disclosure"
+    - "SC.L2-3.13.10: Employ FIPS-validated cryptography"
+match:
+  type: not_exists_where
+  path: vpn.ipsec_tunnels
+  where:
+    enabled:
+      type: is_true
+    phase1.authentication:
+      type: intersects
+      values:
+        - md5
+        - sha1
+        - sha-1
+        - sha
+remediation: >
+  Replace MD5 and SHA-1 with SHA-256 or SHA-512 in all IKE Phase 1 proposals.
+  FortiGate: 'config vpn ipsec phase1-interface' → 'set proposal
+  aes256-sha256 aes128-sha256'. Remove any proposals using md5 or sha1 suffix.
+  Coordinate with remote VPN peers — both endpoints must agree on proposals.

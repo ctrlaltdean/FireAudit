@@ -1,0 +1,30 @@
+rule_id: FW-LOG-007
+name: Multiple Syslog Servers Should Be Configured for Redundancy
+description: >
+  Configuring a single syslog destination creates a single point of failure
+  for log collection. If the syslog server is unreachable, logs may be lost.
+  Configuring at least two syslog servers ensures log delivery continuity
+  during maintenance, failures, or incidents affecting the primary server.
+severity: low
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.1: Configure redundant logging"
+  NIST_800-53:
+    - "AU-9: Protection of Audit Information"
+    - "CP-9: System Backup"
+  ISO27001:
+    - "A.12.4.2: Protection of log information"
+    - "A.17.2.1: Availability of information processing facilities"
+match:
+  type: condition
+  path: logging.syslog_servers
+  condition:
+    type: count_gt
+    value: 1
+remediation: >
+  Configure a secondary syslog server. FortiGate supports up to 4 syslog
+  destinations via 'config log syslogd2 setting', 'log syslogd3 setting', and
+  'log syslogd4 setting'. Configure a secondary SIEM or syslog aggregator
+  at a different network location for redundancy.

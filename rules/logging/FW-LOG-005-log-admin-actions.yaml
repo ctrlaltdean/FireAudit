@@ -1,0 +1,33 @@
+rule_id: FW-LOG-005
+name: Administrative Configuration Changes Must Be Logged
+description: >
+  All configuration changes made by administrators must be logged to create
+  an audit trail for change management, incident investigation, and compliance.
+  Without change logging, unauthorized or erroneous configuration modifications
+  may go undetected and unattributed.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.4: Log administrative actions"
+  NIST_800-53:
+    - "AU-2: Event Logging"
+    - "CM-3: Configuration Change Control"
+    - "AU-12: Audit Record Generation"
+  ISO27001:
+    - "A.12.4.1: Event logging"
+    - "A.12.1.2: Change management"
+  CMMC:
+    - "AU.L2-3.3.1: Create and retain audit logs"
+    - "CM.L2-3.4.3: Track, review, approve, and log changes"
+match:
+  type: condition
+  path: logging.log_admin_actions
+  condition:
+    type: is_true
+remediation: >
+  Enable admin action/configuration change logging. FortiGate: 'config log setting'
+  → 'set log-user-in-upper enable'. Ensure 'config log syslogd filter' includes
+  event log severity. All CLI/GUI changes by administrators will be captured
+  in the event log under the 'admin' subcategory.

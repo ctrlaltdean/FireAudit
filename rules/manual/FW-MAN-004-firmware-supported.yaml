@@ -1,0 +1,39 @@
+rule_id: FW-MAN-004
+name: Firewall Firmware Must Be on a Supported and Patched Version
+description: >
+  Running unsupported or unpatched firmware exposes the firewall to known
+  vulnerabilities. Firewall OS versions have published CVEs and End-of-Support
+  dates that must be tracked. Determining whether the current firmware version
+  is supported and fully patched requires cross-referencing against vendor
+  security advisories and support lifecycle tables.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.2: Keep firmware current"
+  NIST_800-53:
+    - "SI-2: Flaw Remediation"
+    - "SA-10: Developer Configuration Management"
+    - "CM-6: Configuration Settings"
+  NIST_CSF:
+    - "ID.RA-1: Asset vulnerabilities are identified and documented"
+    - "RS.MI-3: Newly identified vulnerabilities are mitigated"
+  ISO27001:
+    - "A.12.6.1: Management of technical vulnerabilities"
+  CMMC:
+    - "SI.L1-3.14.1: Identify, report, and correct information and information system flaws"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) The current firmware version (shown in device info above) is
+    checked against the vendor's latest stable release and security advisory page.
+    (2) The firmware version is not past its End-of-Support date.
+    (3) All critical and high severity CVEs for this firmware version are patched.
+    (4) A firmware upgrade schedule exists for applying patches within 30-90 days
+    of release. (5) Firmware integrity is verified before and after upgrades.
+remediation: >
+  Subscribe to vendor security advisories and maintain a patching schedule.
+  FortiGate: Check https://www.fortiguard.com/psirt for active advisories.
+  Test firmware upgrades in a lab environment before production deployment.
+  Maintain a rollback plan and backup the configuration before upgrading.

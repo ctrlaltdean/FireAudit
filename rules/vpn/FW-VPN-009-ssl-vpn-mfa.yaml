@@ -1,0 +1,46 @@
+rule_id: FW-VPN-009
+name: SSL VPN Must Require Multi-Factor Authentication
+description: >
+  SSL VPN remote access provides direct network ingress from the internet.
+  Single-factor password authentication for VPN is insufficient given the
+  widespread availability of credential lists from data breaches. MFA must
+  be required to prevent unauthorized remote access even when credentials
+  are compromised.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.3: Require MFA for remote access VPN"
+  NIST_800-53:
+    - "IA-2: Identification and Authentication"
+    - "IA-2(1): Multi-Factor Authentication to Privileged Accounts"
+    - "AC-17: Remote Access"
+  NIST_CSF:
+    - "PR.AC-7: Users, devices, and other assets are authenticated"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+    - "A.6.2.2: Teleworking"
+  CMMC:
+    - "IA.L2-3.5.3: Use multi-factor authentication for local and network access"
+    - "AC.L2-3.1.12: Monitor and control remote access sessions"
+match:
+  type: any_of
+  checks:
+    - type: condition
+      path: vpn.ssl_vpn.enabled
+      condition:
+        type: is_false
+    - type: condition
+      path: vpn.ssl_vpn.enabled
+      condition:
+        type: is_null
+    - type: condition
+      path: vpn.ssl_vpn.mfa_required
+      condition:
+        type: is_true
+remediation: >
+  Enable MFA for SSL VPN authentication. FortiGate: Integrate with FortiToken,
+  FortiAuthenticator, or a RADIUS server with MFA. In 'config vpn ssl settings',
+  configure 'set auth-timeout 300'. Assign two-factor authentication to VPN
+  user groups via 'config user local' or the authentication scheme.

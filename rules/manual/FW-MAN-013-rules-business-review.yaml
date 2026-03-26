@@ -1,0 +1,43 @@
+rule_id: FW-MAN-013
+name: Firewall Rules Must Be Reviewed Against Business Requirements Annually
+description: >
+  A periodic business-driven review of the entire firewall rule base confirms
+  that each allow rule is still required for documented business purposes and
+  follows the principle of least privilege. This review catches rules that have
+  grown more permissive than necessary over time, rules whose underlying business
+  need has ended, and rules that do not align with current network segmentation
+  policy. This review is a process control that cannot be verified from config alone.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 3.4: Conduct periodic rule reviews"
+  NIST_800-53:
+    - "AC-2: Account Management"
+    - "AC-6: Least Privilege"
+    - "CA-7: Continuous Monitoring"
+    - "CM-3: Configuration Change Control"
+  ISO27001:
+    - "A.9.1.2: Access to networks and network services"
+    - "A.12.1.2: Change management"
+    - "A.18.2.2: Compliance with security policies and standards"
+  CMMC:
+    - "CA.L2-3.12.1: Periodically assess the security controls"
+    - "CM.L2-3.4.1: Establish and maintain baseline configurations"
+match:
+  type: manual
+  guidance: >
+    Verify: (1) A documented firewall rule review process exists with defined
+    frequency (at minimum annually, quarterly recommended). (2) The last review
+    was conducted within the required period and is documented. (3) Each allow
+    rule has a named business owner who confirmed it is still required.
+    (4) Rules identified as unnecessary during the review were removed within
+    an acceptable timeframe. (5) Review findings and remediation actions are
+    recorded and retained for audit purposes.
+remediation: >
+  Establish and document a formal firewall rule review process. Schedule
+  reviews with business stakeholders at least annually. Use firewall management
+  tools (FortiManager, Tufin, AlgoSec, FireMon) to track rule usage, ownership,
+  and review status. Document approval for each continued allow rule and
+  provide evidence to auditors on request.

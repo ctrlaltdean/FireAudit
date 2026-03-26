@@ -1,0 +1,36 @@
+rule_id: FW-LOG-006
+name: Syslog Must Use Encrypted Transport (TLS)
+description: >
+  Log data in transit is susceptible to interception and tampering when sent
+  over unencrypted UDP or TCP syslog. An attacker with network access can read,
+  modify, or suppress log entries. At least one syslog destination should use
+  TLS (RFC 5425) to protect log integrity and confidentiality in transit.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.1: Encrypt log transmission"
+  NIST_800-53:
+    - "AU-9: Protection of Audit Information"
+    - "SC-8: Transmission Confidentiality and Integrity"
+  ISO27001:
+    - "A.12.4.2: Protection of log information"
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "AU.L2-3.3.1: Create and retain audit logs"
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+match:
+  type: condition
+  path: logging.syslog_servers
+  condition:
+    type: exists_where
+    where:
+      protocol:
+        type: eq
+        value: tls
+remediation: >
+  Configure at least one syslog destination to use TLS transport.
+  FortiGate: 'config log syslogd setting' → 'set mode reliable' enables
+  TCP syslog; for TLS add certificate configuration. Use a dedicated syslog
+  server or SIEM that supports RFC 5425 TLS syslog on port 6514.

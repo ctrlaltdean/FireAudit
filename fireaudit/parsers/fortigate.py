@@ -266,6 +266,7 @@ class FortiGateParser(BaseParser):
         # SNMP
         snmp_block = sections.get("system snmp sysinfo", _FGBlock())
         snmp_community_block = sections.get("system snmp community", _FGBlock())
+        snmp_user_block = sections.get("system snmp user", _FGBlock())
         snmp_enabled = _enabled(snmp_block, "status")
         aa["snmp"]["enabled"] = bool(snmp_enabled)
 
@@ -275,6 +276,24 @@ class FortiGateParser(BaseParser):
             if name:
                 communities.append(str(name))
         aa["snmp"]["community_strings"] = communities
+
+        # SNMPv3 security level: check if any v3 user is configured and what level it uses
+        # FortiGate: 'config system snmp user' → 'set security-level auth-priv|auth-no-priv|no-auth-no-priv'
+        if snmp_user_block.entries:
+            aa["snmp"]["version"] = "v3"
+            # Find the weakest security level across all v3 users
+            level_rank = {"auth-priv": 3, "auth-no-priv": 2, "no-auth-no-priv": 1}
+            weakest = None
+            for _uid, u_entry in snmp_user_block.entries.items():
+                lvl = _get(u_entry, "security-level") or "no-auth-no-priv"
+                rank = level_rank.get(str(lvl).lower(), 1)
+                if weakest is None or rank < level_rank.get(weakest, 0):
+                    weakest = str(lvl).lower()
+            aa["snmp"]["security_level"] = weakest
+        elif communities:
+            # Has community strings but no v3 users → v1/v2c
+            aa["snmp"]["version"] = "v2c"
+            aa["snmp"]["security_level"] = None
 
         # Trusted hosts for admin accounts (populated from system admin section)
         trusted: list[str] = []
@@ -452,6 +471,10 @@ class FortiGateParser(BaseParser):
             encryptions, hashes = self._split_proposals(enc_list)
             dh_groups = self._parse_dh_groups(_list_val(p1_entry, "dhgrp"))
             ike_version = _int_val(p1_entry, "ike-version") or 1
+            # aggressive_mode is only relevant for IKEv1; IKEv2 does not have aggressive mode
+            aggressive_mode = (
+                ike_version == 1 and _get(p1_entry, "mode") == "aggressive"
+            )
 
             tunnels[name] = {
                 "name": name,
@@ -464,6 +487,7 @@ class FortiGateParser(BaseParser):
                     "lifetime_seconds": _int_val(p1_entry, "keylife") or 86400,
                     "pfs_enabled": True,
                     "ike_version": ike_version,
+                    "aggressive_mode": aggressive_mode,
                 },
                 "phase2": {
                     "encryption": [],

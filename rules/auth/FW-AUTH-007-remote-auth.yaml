@@ -1,0 +1,43 @@
+rule_id: FW-AUTH-007
+name: Centralized Authentication (RADIUS or TACACS+) Must Be Configured
+description: >
+  Administrative authentication should use a centralized authentication server
+  (RADIUS or TACACS+) rather than relying solely on local accounts. Centralized
+  authentication enables consistent policy enforcement, centralized audit trails,
+  and rapid revocation of access when staff changes occur.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.3: Use centralized authentication"
+  NIST_800-53:
+    - "IA-2: Identification and Authentication"
+    - "AC-2: Account Management"
+    - "AU-3: Content of Audit Records"
+  ISO27001:
+    - "A.9.2.3: Management of privileged access rights"
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "IA.L2-3.5.2: Authenticate organizational users"
+match:
+  type: any_of
+  checks:
+    - type: condition
+      path: authentication.remote_auth.radius_enabled
+      condition:
+        type: is_true
+    - type: condition
+      path: authentication.remote_auth.tacacs_enabled
+      condition:
+        type: is_true
+    - type: condition
+      path: authentication.remote_auth.ldap_enabled
+      condition:
+        type: is_true
+remediation: >
+  Configure RADIUS or TACACS+ for administrative authentication.
+  FortiGate RADIUS: 'config user radius' → add a server entry with host,
+  secret, and auth-type. FortiGate TACACS+: 'config user tacacs+' →
+  add a server entry. Then assign the auth server to admin accounts via
+  'config system admin' → 'set remote-auth enable'.

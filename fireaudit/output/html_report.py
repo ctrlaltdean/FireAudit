@@ -56,6 +56,8 @@ _TEMPLATE = r"""<!DOCTYPE html>
   .badge.pass { background: #f0fdf4; color: var(--pass); }
   .badge.fail { background: #fef2f2; color: var(--fail); }
   .badge.error { background: #f5f3ff; color: #7c3aed; }
+  .badge.manual_check { background: #fefce8; color: #854d0e; }
+  .manual-note { font-size: .8rem; background: #fefce8; border-left: 3px solid #ca8a04; padding: .5rem .75rem; margin-top: .5rem; color: #713f12; }
   .remediation { font-size: .8rem; background: #f8fafc; border-left: 3px solid #6366f1; padding: .5rem .75rem; margin-top: .5rem; color: #475569; }
   .affected { font-family: monospace; font-size: .75rem; color: #64748b; margin-top: .25rem; }
   details > summary { cursor: pointer; font-size: .8rem; color: #6366f1; margin-top: .25rem; }
@@ -88,6 +90,12 @@ _TEMPLATE = r"""<!DOCTYPE html>
       <div class="value">{{ report.summary.total_rules }}</div>
       <div class="label">Rules Evaluated</div>
     </div>
+    {% if report.summary.manual_check %}
+    <div class="card" style="border-top:4px solid #ca8a04;">
+      <div class="value" style="color:#ca8a04;">{{ report.summary.manual_check }}</div>
+      <div class="label">Manual Checks Required</div>
+    </div>
+    {% endif %}
     <div class="card pass">
       <div class="value">{{ report.summary.pass }}</div>
       <div class="label">Passed</div>
@@ -156,6 +164,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
         <option value="fail">Fail</option>
         <option value="pass">Pass</option>
         <option value="error">Error</option>
+        <option value="manual_check">Manual Check</option>
       </select>
       <input id="search" type="text" placeholder="Search…" oninput="filterTable()">
     </div>
@@ -204,6 +213,53 @@ _TEMPLATE = r"""<!DOCTYPE html>
       </tbody>
     </table>
   </section>
+
+  {% set manual_findings = report.findings | selectattr('status', 'eq', 'manual_check') | list %}
+  {% if manual_findings %}
+  <section style="border-top: 4px solid #ca8a04;">
+    <h2>&#9888; Manual Verification Required</h2>
+    <p style="font-size:.875rem;color:#64748b;margin-bottom:1rem;">
+      The following checks cannot be determined from static configuration analysis alone.
+      Each item must be verified manually by a qualified engineer before the audit can be
+      considered complete.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Check ID</th>
+          <th>Check</th>
+          <th>Guidance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in manual_findings %}
+        <tr>
+          <td><code>{{ f.rule_id }}</code></td>
+          <td>
+            {{ f.name }}
+            {% if f.frameworks %}
+            <details>
+              <summary>Framework mappings</summary>
+              {% for fw, controls in f.frameworks.items() %}
+              <div style="margin:.25rem 0;font-size:.75rem;">
+                <strong>{{ fw }}:</strong>
+                {% if controls is string %}{{ controls }}
+                {% else %}{{ controls | join(", ") }}{% endif %}
+              </div>
+              {% endfor %}
+            </details>
+            {% endif %}
+          </td>
+          <td>
+            {% if f.details %}<div class="manual-note">{{ f.details }}</div>{% endif %}
+            {% if f.remediation %}<div class="remediation">{{ f.remediation }}</div>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
 
 </div>
 
