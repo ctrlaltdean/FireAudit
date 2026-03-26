@@ -23,6 +23,8 @@ frameworks:
   CMMC:
     - "PE.L1-3.10.1: Limit physical access to organizational systems"
     - "PE.L1-3.10.3: Escort visitors and monitor visitor activity"
+  DISA_STIG:
+    - "SRG-NET-000001: The network device must be located in a physically controlled access area"
 match:
   type: manual
   guidance: >

@@ -6,6 +6,8 @@ from pathlib import Path
 
 from jinja2 import Environment, BaseLoader
 
+from fireaudit.data.framework_urls import get_control_url
+
 # Inline template to keep the project self-contained
 _TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
@@ -190,8 +192,15 @@ _TEMPLATE = r"""<!DOCTYPE html>
               {% for fw, controls in f.frameworks.items() %}
               <div style="margin:.25rem 0;font-size:.75rem;">
                 <strong>{{ fw }}:</strong>
-                {% if controls is string %}{{ controls }}
-                {% else %}{{ controls | join(", ") }}{% endif %}
+                {% if controls is string %}
+                  {% set url = fw_url(fw, controls) %}
+                  {% if url %}<a href="{{ url }}" target="_blank" rel="noopener" style="color:#6366f1;">{{ controls }}</a>{% else %}{{ controls }}{% endif %}
+                {% else %}
+                  {% for ctrl in controls %}
+                    {% set url = fw_url(fw, ctrl) %}
+                    {% if url %}<a href="{{ url }}" target="_blank" rel="noopener" style="color:#6366f1;">{{ ctrl }}</a>{% else %}{{ ctrl }}{% endif %}{% if not loop.last %},<br>{% endif %}
+                  {% endfor %}
+                {% endif %}
               </div>
               {% endfor %}
             </details>
@@ -243,8 +252,15 @@ _TEMPLATE = r"""<!DOCTYPE html>
               {% for fw, controls in f.frameworks.items() %}
               <div style="margin:.25rem 0;font-size:.75rem;">
                 <strong>{{ fw }}:</strong>
-                {% if controls is string %}{{ controls }}
-                {% else %}{{ controls | join(", ") }}{% endif %}
+                {% if controls is string %}
+                  {% set url = fw_url(fw, controls) %}
+                  {% if url %}<a href="{{ url }}" target="_blank" rel="noopener" style="color:#6366f1;">{{ controls }}</a>{% else %}{{ controls }}{% endif %}
+                {% else %}
+                  {% for ctrl in controls %}
+                    {% set url = fw_url(fw, ctrl) %}
+                    {% if url %}<a href="{{ url }}" target="_blank" rel="noopener" style="color:#6366f1;">{{ ctrl }}</a>{% else %}{{ ctrl }}{% endif %}{% if not loop.last %},<br>{% endif %}
+                  {% endfor %}
+                {% endif %}
               </div>
               {% endfor %}
             </details>
@@ -286,8 +302,8 @@ function filterTable() {
 def render_html(report: dict, output_path: str | Path | None = None) -> str:
     """Render an HTML report from a report dict. Returns HTML string."""
     env = Environment(loader=BaseLoader())
-    # Make dict.get available in templates
     env.globals["report"] = report
+    env.globals["fw_url"] = get_control_url
     template = env.from_string(_TEMPLATE)
     html = template.render(report=report)
 

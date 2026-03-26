@@ -22,6 +22,8 @@ frameworks:
   CMMC:
     - "AC.L1-3.1.2: Limit access to types of transactions"
     - "SC.L1-3.13.1: Monitor communications at external boundaries"
+  DISA_STIG:
+    - "SRG-NET-000230: The firewall must deny network communications traffic by default and allow traffic by exception"
 match:
   type: not_exists_where
   path: firewall_policies

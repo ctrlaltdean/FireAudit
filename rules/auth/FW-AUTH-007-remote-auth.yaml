@@ -20,6 +20,8 @@ frameworks:
     - "A.9.4.2: Secure log-on procedures"
   CMMC:
     - "IA.L2-3.5.2: Authenticate organizational users"
+  DISA_STIG:
+    - "SRG-NET-000193: The network device must use an authentication server to authenticate administrators"
 match:
   type: any_of
   checks:

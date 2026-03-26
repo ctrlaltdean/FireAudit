@@ -24,6 +24,8 @@ frameworks:
   CMMC:
     - "SI.L1-3.14.2: Provide protection from malicious code"
     - "SI.L2-3.14.6: Monitor organizational systems to detect attacks"
+  DISA_STIG:
+    - "SRG-NET-000230: The network device must implement intrusion detection or prevention mechanisms"
 match:
   type: manual
   guidance: >

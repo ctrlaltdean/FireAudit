@@ -20,6 +20,8 @@ frameworks:
     - "A.17.2.1: Availability of information processing facilities"
   CMMC:
     - "CP.L2-3.6.2: Test organizational incident response capabilities"
+  DISA_STIG:
+    - "SRG-NET-000008: The network device must support high-availability failover and be tested periodically"
 match:
   type: manual
   guidance: >

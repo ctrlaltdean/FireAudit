@@ -16,6 +16,8 @@ frameworks:
     - "A.14.1.3: Protecting application services transactions"
   CMMC:
     - "AC.L2-3.1.13: Employ cryptographic mechanisms"
+  DISA_STIG:
+    - "SRG-NET-000026: The network device must use FIPS-validated cryptography for SSH sessions"
 match:
   type: condition
   path: admin_access.ssh_settings.version

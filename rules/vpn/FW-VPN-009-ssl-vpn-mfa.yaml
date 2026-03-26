@@ -24,6 +24,8 @@ frameworks:
   CMMC:
     - "IA.L2-3.5.3: Use multi-factor authentication for local and network access"
     - "AC.L2-3.1.12: Monitor and control remote access sessions"
+  DISA_STIG:
+    - "SRG-NET-000138: The SSL VPN must enforce multifactor authentication for remote access"
 match:
   type: any_of
   checks:

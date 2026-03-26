@@ -17,6 +17,8 @@ frameworks:
   ISO27001:
     - "A.12.4.2: Protection of log information"
     - "A.17.2.1: Availability of information processing facilities"
+  DISA_STIG:
+    - "SRG-NET-000333: The network device must use redundant log servers for availability"
 match:
   type: condition
   path: logging.syslog_servers

@@ -21,6 +21,8 @@ frameworks:
   CMMC:
     - "AU.L2-3.3.1: Create and retain audit logs"
     - "CM.L2-3.4.3: Track, review, approve, and log changes"
+  DISA_STIG:
+    - "SRG-NET-000089: The network device must generate audit records for all configuration changes"
 match:
   type: condition
   path: logging.log_admin_actions

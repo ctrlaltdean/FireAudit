@@ -23,6 +23,8 @@ frameworks:
     - "A.12.6.1: Management of technical vulnerabilities"
   CMMC:
     - "SI.L1-3.14.1: Identify, report, and correct information and information system flaws"
+  DISA_STIG:
+    - "SRG-NET-000006: The network device must run a vendor-supported software release"
 match:
   type: manual
   guidance: >

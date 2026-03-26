@@ -20,6 +20,8 @@ frameworks:
     - "A.9.1.2: Access to networks and network services"
   CMMC:
     - "CM.L2-3.4.7: Restrict, disable, or prevent the use of nonessential programs"
+  DISA_STIG:
+    - "SRG-NET-000230: The firewall must not retain rules that are unused or no longer required"
 match:
   type: manual
   guidance: >

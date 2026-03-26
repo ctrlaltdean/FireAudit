@@ -20,6 +20,8 @@ frameworks:
     - "A.9.4.2: Secure log-on procedures"
   CMMC:
     - "AC.L2-3.1.8: Limit unsuccessful logon attempts"
+  DISA_STIG:
+    - "SRG-NET-000167: The network device must enforce a limit of consecutive failed login attempts"
 match:
   type: all_of
   checks:

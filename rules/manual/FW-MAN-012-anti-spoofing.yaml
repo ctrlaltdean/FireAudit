@@ -20,6 +20,8 @@ frameworks:
     - "A.13.1.1: Network controls"
   CMMC:
     - "SC.L1-3.13.1: Monitor, control, and protect communications"
+  DISA_STIG:
+    - "SRG-NET-000230: The network device must implement anti-spoofing mechanisms on WAN interfaces"
 match:
   type: manual
   guidance: >

@@ -20,6 +20,8 @@ frameworks:
     - "A.17.1.2: Implementing information security continuity"
   CMMC:
     - "CP.L2-3.8.9: Protect backup CUI at storage locations"
+  DISA_STIG:
+    - "SRG-NET-000070: The network device must have its configuration backed up and tested regularly"
 match:
   type: manual
   guidance: >

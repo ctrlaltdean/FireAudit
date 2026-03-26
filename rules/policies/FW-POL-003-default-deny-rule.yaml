@@ -22,6 +22,8 @@ frameworks:
   CMMC:
     - "AC.L1-3.1.2: Limit access to types of transactions"
     - "SC.L1-3.13.1: Monitor, control, and protect communications"
+  DISA_STIG:
+    - "SRG-NET-000230: The firewall must have an explicit deny-all rule as the last rule in the policy"
 match:
   type: condition
   path: firewall_policies

@@ -18,6 +18,8 @@ frameworks:
     - "A.10.1.1: Policy on the use of cryptographic controls"
   CMMC:
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+  DISA_STIG:
+    - "SRG-NET-000281: The VPN gateway must enable Perfect Forward Secrecy for IPsec tunnels"
 match:
   type: foreach
   path: vpn.ipsec_tunnels

@@ -25,6 +25,8 @@ frameworks:
   CMMC:
     - "CA.L2-3.12.1: Periodically assess the security controls"
     - "CM.L2-3.4.1: Establish and maintain baseline configurations"
+  DISA_STIG:
+    - "SRG-NET-000230: The firewall rule base must be reviewed against business requirements at least annually"
 match:
   type: manual
   guidance: >

@@ -14,6 +14,8 @@ frameworks:
     - "A.10.1.1: Policy on the use of cryptographic controls"
   CMMC:
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+  DISA_STIG:
+    - "SRG-NET-000280: The VPN gateway must use Diffie-Hellman groups of 14 or higher for key exchange"
 match:
   type: not_exists_where
   path: vpn.ipsec_tunnels

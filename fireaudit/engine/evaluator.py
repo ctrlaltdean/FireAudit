@@ -30,6 +30,19 @@ class Finding:
     source_rule_file: str = ""
 
     def to_dict(self) -> dict:
+        from fireaudit.data.framework_urls import get_control_url
+
+        framework_links: dict[str, dict[str, str]] = {}
+        for fw, controls in self.frameworks.items():
+            links: dict[str, str] = {}
+            items = controls if isinstance(controls, list) else [controls]
+            for ctrl in items:
+                url = get_control_url(fw, ctrl)
+                if url:
+                    links[ctrl] = url
+            if links:
+                framework_links[fw] = links
+
         return {
             "rule_id": self.rule_id,
             "name": self.name,
@@ -38,6 +51,7 @@ class Finding:
             "description": self.description,
             "remediation": self.remediation,
             "frameworks": self.frameworks,
+            "framework_links": framework_links,
             "affected_paths": self.affected_paths,
             "affected_values": [str(v) for v in self.affected_values],
             "details": self.details,

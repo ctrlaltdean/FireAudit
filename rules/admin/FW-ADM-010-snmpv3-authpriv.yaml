@@ -21,6 +21,8 @@ frameworks:
   CMMC:
     - "AC.L1-3.1.13: Employ cryptographic mechanisms to protect CUI"
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+  DISA_STIG:
+    - "SRG-NET-000131: The network device must use SNMPv3 with authentication and privacy (authPriv)"
 match:
   type: any_of
   checks:

@@ -23,6 +23,8 @@ frameworks:
   CMMC:
     - "AU.L2-3.3.1: Create and retain audit logs"
     - "AU.L2-3.3.2: Ensure audit log review and reporting"
+  DISA_STIG:
+    - "SRG-NET-000333: The network device must send log data to a central log server"
 match:
   type: condition
   path: logging.syslog_servers

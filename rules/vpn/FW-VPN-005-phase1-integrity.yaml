@@ -19,6 +19,8 @@ frameworks:
   CMMC:
     - "SC.L2-3.13.8: Implement cryptographic mechanisms to prevent unauthorized disclosure"
     - "SC.L2-3.13.10: Employ FIPS-validated cryptography"
+  DISA_STIG:
+    - "SRG-NET-000280: The VPN gateway must use FIPS-approved integrity algorithms for IPsec Phase 1"
 match:
   type: not_exists_where
   path: vpn.ipsec_tunnels

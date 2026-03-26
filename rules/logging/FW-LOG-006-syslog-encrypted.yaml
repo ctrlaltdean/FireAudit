@@ -20,6 +20,8 @@ frameworks:
   CMMC:
     - "AU.L2-3.3.1: Create and retain audit logs"
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+  DISA_STIG:
+    - "SRG-NET-000333: The network device must use encryption when transmitting log data to remote servers"
 match:
   type: condition
   path: logging.syslog_servers

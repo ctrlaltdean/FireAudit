@@ -19,6 +19,8 @@ frameworks:
     - "A.13.1.1: Network controls"
   CMMC:
     - "SI.L2-3.14.6: Monitor organizational systems"
+  DISA_STIG:
+    - "SRG-NET-000338: The firewall must inspect encrypted traffic using SSL/TLS decryption"
 match:
   type: manual
   guidance: >

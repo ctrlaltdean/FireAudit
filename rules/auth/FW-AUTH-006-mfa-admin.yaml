@@ -20,6 +20,8 @@ frameworks:
     - "A.9.4.2: Secure log-on procedures"
   CMMC:
     - "IA.L2-3.5.3: Use multi-factor authentication for local and network access"
+  DISA_STIG:
+    - "SRG-NET-000138: The network device must enforce multifactor authentication for administrative access"
 match:
   type: condition
   path: authentication.mfa_enabled_globally
