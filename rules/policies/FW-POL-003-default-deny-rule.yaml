@@ -2,10 +2,14 @@ rule_id: FW-POL-003
 name: An Explicit Deny Rule Must Exist in the Policy
 description: >
   Firewall policy should include at least one explicit deny rule to enforce
-  default-deny behavior. While most platforms have an implicit deny-all at the
-  end of the rule base, an explicit deny rule provides a visible audit artifact,
-  enables logging of denied traffic, and documents the intended policy posture.
-severity: critical
+  default-deny behavior. While most platforms (including FortiGate, Cisco ASA,
+  and pfSense) have an implicit deny-all at the end of the rule base, that
+  implicit rule does not generate log entries and is not visible during a policy
+  review. An explicit deny rule provides a visible audit artifact, enables
+  logging of denied traffic (see also FW-POL-004), and documents the intended
+  policy posture. Note: failing this rule does not mean traffic is passing
+  unfiltered — the implicit deny still blocks it.
+severity: high
 vendors:
   - all
 frameworks:

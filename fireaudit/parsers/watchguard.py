@@ -5,7 +5,7 @@ into the FireAudit normalised IR.
 
 WatchGuard Fireware XML backup root structure::
 
-  <policy os-version="12.10.0.B692988">
+  <policy os-version="12.10.0.B692988">  (some firmware versions use <profile> as root)
     <setup>
       <name>Firebox-01</name>
       <model-info>
@@ -161,9 +161,9 @@ class WatchGuardParser(BaseParser):
         except ET.ParseError as exc:
             raise ValueError(f"Invalid XML: {exc}") from exc
 
-        if root.tag != "policy":
+        if root.tag not in ("policy", "profile"):
             raise ValueError(
-                f"Unexpected root element <{root.tag}>. Expected <policy>"
+                f"Unexpected root element <{root.tag}>. Expected <policy> or <profile>"
             )
 
         ir = self._base_ir()
