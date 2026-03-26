@@ -57,24 +57,26 @@ fireaudit parse -c firewall.conf -v fortigate -o ir.json
 
 ## Audit Rules
 
-| Rule ID | Name | Severity |
-|---------|------|----------|
-| FW-ADM-001 | HTTP management disabled | High |
-| FW-ADM-002 | Telnet management disabled | High |
-| FW-ADM-003 | SSH version 2 only | Medium |
-| FW-ADM-004 | Admin session timeout ≤ 10 min | Medium |
-| FW-ADM-005 | Trusted hosts configured | Medium |
-| FW-ADM-006 | Login banner configured | Low |
-| FW-AUTH-001 | Password minimum length ≥ 12 | High |
-| FW-AUTH-002 | Default admin account renamed | High |
-| FW-LOG-001 | Syslog server configured | High |
-| FW-LOG-002 | NTP server configured | Medium |
-| FW-POL-001 | No any/any allow rules | Critical |
-| FW-POL-002 | All allow policies have logging | High |
-| FW-VPN-001 | No weak IKE encryption (3DES/DES) | Critical |
-| FW-VPN-002 | IKEv2 only (no IKEv1) | High |
-| FW-VPN-003 | No weak DH groups (group 1/2/5) | High |
-| FW-VPN-004 | SSL VPN requires TLS 1.2+ | High |
+Each rule describes a **required** security configuration. Severity indicates how critical the finding is when a rule **fails** (i.e. when the requirement is not met).
+
+| Rule ID | Requirement | Severity if Failed |
+|---------|-------------|--------------------|
+| FW-ADM-001 | HTTP management must be disabled | High |
+| FW-ADM-002 | Telnet management must be disabled | High |
+| FW-ADM-003 | SSH must use version 2 only | Medium |
+| FW-ADM-004 | Administrative session timeout must be 10 minutes or less | Medium |
+| FW-ADM-005 | Administrative access must be restricted to trusted hosts | Medium |
+| FW-ADM-006 | Login banner must be configured | Low |
+| FW-AUTH-001 | Minimum password length must be 12 characters or more | High |
+| FW-AUTH-002 | Default 'admin' account must be renamed or disabled | High |
+| FW-LOG-001 | Remote syslog server must be configured | High |
+| FW-LOG-002 | NTP must be configured for accurate log timestamps | Medium |
+| FW-POL-001 | No unrestricted any-to-any allow policies | Critical |
+| FW-POL-002 | All allow policies must have logging enabled | High |
+| FW-VPN-001 | IPsec VPN must not use weak encryption algorithms (3DES/DES) | Critical |
+| FW-VPN-002 | IPsec VPN tunnels must use IKEv2 | High |
+| FW-VPN-003 | IPsec VPN must not use weak Diffie-Hellman groups (1/2/5) | High |
+| FW-VPN-004 | SSL VPN must not accept TLS 1.0 or 1.1 | High |
 
 ## Compliance Frameworks
 
