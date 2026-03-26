@@ -21,7 +21,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from fireaudit.parsers.base import BaseParser
+from fireaudit.parsers.base import BaseParser, infer_interface_role
 
 
 # ---------------------------------------------------------------------------
@@ -352,6 +352,9 @@ class PfSenseParser(BaseParser):
                 auth_map = {"pre_shared_key": "psk", "cert": "certificate", "eap-tls": "eap"}
                 auth_method = auth_map.get(auth_method.lower(), "psk")
 
+                mode = _text(p1, "mode") or "main"
+                aggressive_mode = mode.lower() == "aggressive"
+
                 tunnels[ikeid] = {
                     "name": descr,
                     "enabled": not disabled,
@@ -363,6 +366,7 @@ class PfSenseParser(BaseParser):
                         "lifetime_seconds": _int(p1, "lifetime") or 28800,
                         "pfs_enabled": True,
                         "ike_version": ike_version,
+                        "aggressive_mode": aggressive_mode,
                     },
                     "phase2": {
                         "encryption": [],
@@ -520,6 +524,7 @@ class PfSenseParser(BaseParser):
             iface_list.append({
                 "name": if_name,
                 "type": _text(iface_el, "type") or "physical",
+                "role": infer_interface_role(iface_logical_name, if_name),
                 "zone": iface_logical_name,
                 "ip_address": ip_addr,
                 "netmask": netmask,

@@ -30,7 +30,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from fireaudit.parsers.base import BaseParser
+from fireaudit.parsers.base import BaseParser, infer_interface_role
 
 
 # ---------------------------------------------------------------------------
@@ -249,6 +249,14 @@ class SonicWallParser(BaseParser):
             community = _text(snmp_el, "CommunityString")
             if community:
                 snmp["community_strings"] = [community]
+            # SNMPv3 security level (SonicWall uses SecurityLevel element)
+            sec_level_raw = (_text(snmp_el, "SecurityLevel") or "").lower()
+            if "authpriv" in sec_level_raw or "auth-priv" in sec_level_raw or sec_level_raw == "3":
+                snmp["security_level"] = "auth-priv"
+            elif "authnopriv" in sec_level_raw or "auth-no-priv" in sec_level_raw or sec_level_raw == "2":
+                snmp["security_level"] = "auth-no-priv"
+            elif sec_level_raw in ("noauth", "noauthnopriv", "1"):
+                snmp["security_level"] = "no-auth-no-priv"
 
     def _extract_authentication(
         self,
@@ -388,6 +396,9 @@ class SonicWallParser(BaseParser):
                 p1_dh = _parse_dh_group(p1_dh_raw)
                 p2_dh = _parse_dh_group(p2_dh_raw)
 
+                mode_raw = (_text(policy, "Mode") or _text(policy, "Phase1Mode") or "main").lower()
+                aggressive_mode = "aggressive" in mode_raw and ike_version == 1
+
                 tunnels.append({
                     "name": name,
                     "enabled": enabled,
@@ -399,6 +410,7 @@ class SonicWallParser(BaseParser):
                         "lifetime_seconds": 28800,
                         "pfs_enabled": pfs_enabled,
                         "ike_version": ike_version,
+                        "aggressive_mode": aggressive_mode,
                     },
                     "phase2": {
                         "encryption": [_normalize_encryption(p2_enc_raw)] if p2_enc_raw else [],
@@ -511,6 +523,7 @@ class SonicWallParser(BaseParser):
             iface_list.append({
                 "name": name,
                 "type": "physical",
+                "role": infer_interface_role(zone, name),
                 "zone": zone,
                 "ip_address": ip_addr,
                 "netmask": netmask,

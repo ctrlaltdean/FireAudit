@@ -7,6 +7,27 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 
+_WAN_HINTS = frozenset(("wan", "outside", "external", "untrust", "internet", "uplink", "public", "ext", "egress"))
+_LAN_HINTS = frozenset(("lan", "inside", "internal", "trust", "trusted", "private", "intranet", "ingress", "mgmt", "management"))
+_DMZ_HINTS = frozenset(("dmz",))
+
+
+def infer_interface_role(zone: str | None, name: str | None = None) -> str | None:
+    """Heuristically infer interface role (wan/lan/dmz) from zone name or interface name.
+
+    Returns ``"wan"``, ``"lan"``, ``"dmz"``, or ``None`` if unknown.
+    """
+    for candidate in filter(None, [zone, name]):
+        lower = candidate.lower()
+        if any(h in lower for h in _WAN_HINTS):
+            return "wan"
+        if any(h in lower for h in _DMZ_HINTS):
+            return "dmz"
+        if any(h in lower for h in _LAN_HINTS):
+            return "lan"
+    return None
+
+
 class BaseParser(ABC):
     """Base class that all vendor parsers must implement.
 

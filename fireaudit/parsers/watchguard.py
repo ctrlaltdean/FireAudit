@@ -38,7 +38,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from fireaudit.parsers.base import BaseParser
+from fireaudit.parsers.base import BaseParser, infer_interface_role
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +291,17 @@ class WatchGuardParser(BaseParser):
             community = _text(snmp_el, "community-string")
             if community:
                 aa["snmp"]["community_strings"] = [community]
+            # SNMPv3 security level
+            v3_el = snmp_el.find("v3") or snmp_el.find("snmpv3")
+            if v3_el is not None:
+                has_auth = v3_el.find("auth") is not None or _text(v3_el, "auth-algorithm") is not None
+                has_priv = v3_el.find("priv") is not None or _text(v3_el, "priv-algorithm") is not None
+                if has_auth and has_priv:
+                    aa["snmp"]["security_level"] = "auth-priv"
+                elif has_auth:
+                    aa["snmp"]["security_level"] = "auth-no-priv"
+                else:
+                    aa["snmp"]["security_level"] = "no-auth-no-priv"
 
     def _extract_authentication(self, root: ET.Element, ir: dict) -> None:
         auth = ir["authentication"]
@@ -442,6 +453,8 @@ class WatchGuardParser(BaseParser):
             p1_life = _int(p1_el, "lifetime") or 28800
             p1_dh = _norm_dh(p1_dh_raw)
 
+            mode_raw = (_text(p1_el, "mode") or _text(gateway_el, "mode") or "main").lower()
+            aggressive_mode = "aggressive" in mode_raw and ike_version == 1
             phase1: dict[str, Any] = {
                 "encryption": [_norm_encryption(p1_enc_raw)] if p1_enc_raw else [],
                 "authentication": [_norm_hash(p1_hash_raw)] if p1_hash_raw else [],
@@ -449,6 +462,7 @@ class WatchGuardParser(BaseParser):
                 "lifetime_seconds": p1_life,
                 "pfs_enabled": True,
                 "ike_version": ike_version,
+                "aggressive_mode": aggressive_mode,
             }
 
             # Phase 2 (IPsec SA)
@@ -627,6 +641,7 @@ class WatchGuardParser(BaseParser):
             ifaces.append({
                 "name": name,
                 "type": "ethernet",
+                "role": infer_interface_role(zone, name),
                 "zone": zone,
                 "ip_address": ip_addr,
                 "netmask": netmask,

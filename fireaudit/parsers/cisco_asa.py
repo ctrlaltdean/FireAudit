@@ -28,7 +28,7 @@ import re
 from collections import defaultdict
 from typing import Any
 
-from fireaudit.parsers.base import BaseParser
+from fireaudit.parsers.base import BaseParser, infer_interface_role
 
 
 # ---------------------------------------------------------------------------
@@ -327,6 +327,16 @@ class CiscoASAParser(BaseParser):
         snmpv3_lines = root.find_lines("snmp-server user ")
         if snmpv3_lines:
             aa["snmp"]["version"] = "v3"
+            # Determine security level from first v3 user definition
+            # "snmp-server user <n> <grp> v3 auth sha <k> priv aes 128 <k>"
+            has_auth = any(" auth " in ln for ln in snmpv3_lines)
+            has_priv = any(" priv " in ln for ln in snmpv3_lines)
+            if has_auth and has_priv:
+                aa["snmp"]["security_level"] = "auth-priv"
+            elif has_auth:
+                aa["snmp"]["security_level"] = "auth-no-priv"
+            else:
+                aa["snmp"]["security_level"] = "no-auth-no-priv"
 
     def _get_ssh_port(self, root: _Block) -> int:
         line = root.find_line("ssh port ")
@@ -507,6 +517,11 @@ class CiscoASAParser(BaseParser):
             pfs_dh = [int(pfs_group)] if pfs_group else []
             pfs_enabled = pfs_line is not None
 
+            # IKEv1 aggressive mode: "crypto isakmp aggressive-mode disable" disables it;
+            # absence means it could be on. Check for explicit disable.
+            aggressive_disabled = root.find_line("crypto isakmp aggressive-mode disable") is not None
+            aggressive_mode = (ike_version == 1) and not aggressive_disabled
+
             tunnels.append({
                 "name": f"{m.group(1)}/{m.group(2)}",
                 "enabled": True,
@@ -518,6 +533,7 @@ class CiscoASAParser(BaseParser):
                     "lifetime_seconds": p1_policy.get("lifetime_seconds"),
                     "pfs_enabled": pfs_enabled,
                     "ike_version": ike_version,
+                    "aggressive_mode": aggressive_mode,
                 },
                 "phase2": {
                     "encryption": enc,
@@ -815,6 +831,7 @@ class CiscoASAParser(BaseParser):
             interfaces.append({
                 "name": iface_name,
                 "type": iface_type,
+                "role": infer_interface_role(nameif, iface_name),
                 "zone": nameif,
                 "ip_address": ip_addr,
                 "netmask": netmask,

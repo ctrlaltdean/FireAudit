@@ -30,7 +30,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from fireaudit.parsers.base import BaseParser
+from fireaudit.parsers.base import BaseParser, infer_interface_role
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +270,14 @@ class SophosXGParser(BaseParser):
             community = _text(snmp_el, "CommunityName")
             if community:
                 aa["snmp"]["community_strings"] = [community]
+            # SNMPv3 security level
+            sec_raw = (_text(snmp_el, "SecurityLevel") or _text(snmp_el, "V3SecurityLevel") or "").lower()
+            if "authpriv" in sec_raw or "auth_priv" in sec_raw or "auth-priv" in sec_raw:
+                aa["snmp"]["security_level"] = "auth-priv"
+            elif "authnopriv" in sec_raw or "auth-no-priv" in sec_raw or "auth_no_priv" in sec_raw:
+                aa["snmp"]["security_level"] = "auth-no-priv"
+            elif sec_raw in ("noauth", "noauthnopriv", "no-auth-no-priv"):
+                aa["snmp"]["security_level"] = "no-auth-no-priv"
 
     def _extract_authentication(self, cfg: ET.Element, ir: dict) -> None:
         auth = ir["authentication"]
@@ -430,6 +438,8 @@ class SophosXGParser(BaseParser):
                         p1_dh = [int(p1_dh_raw)]
                     except ValueError:
                         pass
+                mode_raw = (_text(conn_el, "Mode") or _text(conn_el, "IKEMode") or "main").lower()
+                aggressive_mode = "aggressive" in mode_raw and ike_version == 1
                 phase1: dict[str, Any] = {
                     "encryption": [_norm_encryption(p1_enc_raw)] if p1_enc_raw else [],
                     "authentication": [_norm_hash(p1_hash_raw)] if p1_hash_raw else [],
@@ -437,6 +447,7 @@ class SophosXGParser(BaseParser):
                     "lifetime_seconds": p1_life,
                     "pfs_enabled": True,
                     "ike_version": ike_version,
+                    "aggressive_mode": aggressive_mode,
                 }
 
                 # Phase 2
@@ -558,6 +569,7 @@ class SophosXGParser(BaseParser):
             interfaces.append({
                 "name": name,
                 "type": "ethernet",
+                "role": infer_interface_role(zone, name),
                 "zone": zone,
                 "ip_address": ip_addr,
                 "netmask": netmask,

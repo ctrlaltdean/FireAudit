@@ -25,7 +25,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from fireaudit.parsers.base import BaseParser
+from fireaudit.parsers.base import BaseParser, infer_interface_role
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +291,8 @@ class PaloAltoParser(BaseParser):
             aa["snmp"]["enabled"] = snmp_enabled
             if v3 is not None:
                 aa["snmp"]["version"] = "v3"
+                # PAN-OS SNMPv3 always uses authPriv when v3 is configured
+                aa["snmp"]["security_level"] = "auth-priv"
             elif v2c is not None:
                 aa["snmp"]["version"] = "v2c"
                 community = _text(v2c, "community")
@@ -528,6 +530,8 @@ class PaloAltoParser(BaseParser):
                 "lifetime_seconds": None, "pfs_enabled": True,
             })
             phase1["ike_version"] = gw_data.get("ike_version", 2)
+            # PAN-OS only supports IKE main mode — aggressive mode is not available
+            phase1["aggressive_mode"] = False
 
             p2 = p2_profile if p2_profile else {
                 "encryption": [], "authentication": [], "dh_groups": [],
@@ -726,6 +730,7 @@ class PaloAltoParser(BaseParser):
                 interfaces.append({
                     "name": iface_name,
                     "type": iface_type,
+                    "role": None,  # set after zone cross-ref below
                     "zone": None,  # populated from zone config cross-ref
                     "ip_address": ip_addr,
                     "netmask": netmask,
@@ -749,6 +754,7 @@ class PaloAltoParser(BaseParser):
                         for iface in interfaces:
                             if iface["name"] == iface_name:
                                 iface["zone"] = zone_name
+                                iface["role"] = infer_interface_role(zone_name, iface_name)
 
         ir["interfaces"] = interfaces
 
