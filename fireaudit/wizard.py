@@ -184,6 +184,15 @@ def _wizard_questionary() -> dict:
     if scrub is None:
         sys.exit(0)
 
+    # 8. Manual check walkthrough
+    do_manual_checks = questionary.confirm(
+        "Walk through manual verification checks interactively after the automated audit?",
+        default=True,
+        style=custom_style,
+    ).ask()
+    if do_manual_checks is None:
+        sys.exit(0)
+
     return {
         "vendor": vendor,
         "config": str(config_path),
@@ -192,6 +201,7 @@ def _wizard_questionary() -> dict:
         "fmt": fmt,
         "output": output,
         "scrub": scrub,
+        "do_manual_checks": do_manual_checks,
     }
 
 
@@ -284,6 +294,12 @@ def _wizard_click() -> dict:
     # 7. Scrub
     scrub = click.confirm("Scrub IP addresses and credentials from output?", default=False)
 
+    # 8. Manual check walkthrough
+    do_manual_checks = click.confirm(
+        "Walk through manual verification checks interactively after the automated audit?",
+        default=True,
+    )
+
     return {
         "vendor": vendor,
         "config": str(config_path),
@@ -292,6 +308,7 @@ def _wizard_click() -> dict:
         "fmt": fmt,
         "output": output,
         "scrub": scrub,
+        "do_manual_checks": do_manual_checks,
     }
 
 
@@ -299,13 +316,57 @@ def _wizard_click() -> dict:
 # Run the audit with gathered settings
 # ---------------------------------------------------------------------------
 
+def _run_manual_walkthrough(findings: list) -> None:
+    """Interactively walk the user through each manual check finding."""
+    import click
+
+    manual = [f for f in findings if f.status == "manual_check"]
+    if not manual:
+        return
+
+    console.print()
+    console.rule("[bold yellow]Manual Verification Checks[/bold yellow]")
+    console.print(
+        f"[dim]{len(manual)} checks require human review. "
+        "Answer Y if confirmed OK, N if it needs attention, or press Enter to skip.[/dim]"
+    )
+    console.print()
+
+    for idx, f in enumerate(manual, 1):
+        console.print(f"[bold cyan][{idx}/{len(manual)}][/bold cyan]  [bold]{f.rule_id}[/bold]: {f.name}")
+        if f.details:
+            console.print(f"  [dim]{f.details}[/dim]")
+        if f.remediation:
+            console.print(f"  [italic dim]Guidance: {f.remediation[:200]}[/italic dim]")
+
+        try:
+            raw = click.prompt(
+                "  Confirmed OK?",
+                default="skip",
+                show_default=True,
+            ).strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            console.print("\n[yellow]Manual check walkthrough cancelled.[/yellow]")
+            return
+
+        if raw in ("y", "yes"):
+            f.manual_result = "confirmed_ok"
+            console.print("  [green]✓ Marked as confirmed OK[/green]")
+        elif raw in ("n", "no"):
+            f.manual_result = "needs_attention"
+            console.print("  [red]✗ Marked as needs attention[/red]")
+        else:
+            console.print("  [dim]Skipped[/dim]")
+        console.print()
+
+
 def _run_audit(settings: dict) -> None:
     from fireaudit.parsers import get_parser
     from fireaudit.engine.loader import RuleLoader, RuleLoadError
     from fireaudit.engine.evaluator import RuleEvaluator, build_report
     from fireaudit.output.html_report import render_html
     from fireaudit.output.json_report import render_json
-    from fireaudit.cli import _print_summary, _scrub_ir
+    from fireaudit.cli import _print_summary, _print_findings_table, _scrub_ir
 
     config_path = Path(settings["config"])
     vendor = settings["vendor"]
@@ -314,6 +375,7 @@ def _run_audit(settings: dict) -> None:
     fmt = settings["fmt"]
     output = settings["output"]
     scrub = settings["scrub"]
+    do_manual_checks = settings.get("do_manual_checks", False)
 
     rules_path = Path(__file__).parent.parent / "rules"
 
@@ -358,8 +420,13 @@ def _run_audit(settings: dict) -> None:
         cutoff = sev_order.index(severity)
         findings = [f for f in findings if sev_order.index(f.severity) <= cutoff]
 
+    # Optional manual check walkthrough (updates findings in place before report)
+    if do_manual_checks:
+        _run_manual_walkthrough(findings)
+
     report = build_report(ir, findings, framework_filter=framework)
     _print_summary(report)
+    _print_findings_table(report)
 
     # Write output
     out_path = Path(output)
@@ -399,12 +466,13 @@ def run_wizard() -> None:
     console.print()
     console.print(Panel(
         "\n".join([
-            f"  [bold]Vendor:[/bold]     {_VENDOR_LABELS[settings['vendor']]}",
-            f"  [bold]Config:[/bold]     {settings['config']}",
-            f"  [bold]Framework:[/bold]  {_FRAMEWORK_LABELS.get(settings['framework'] or 'all', settings['framework'])}",
-            f"  [bold]Severity:[/bold]   {_SEVERITY_LABELS.get(settings['severity'] or 'all', settings['severity'])}",
-            f"  [bold]Output:[/bold]     {settings['output']} ({settings['fmt'].upper()})",
-            f"  [bold]Scrub:[/bold]      {'Yes' if settings['scrub'] else 'No'}",
+            f"  [bold]Vendor:[/bold]          {_VENDOR_LABELS[settings['vendor']]}",
+            f"  [bold]Config:[/bold]          {settings['config']}",
+            f"  [bold]Framework:[/bold]       {_FRAMEWORK_LABELS.get(settings['framework'] or 'all', settings['framework'])}",
+            f"  [bold]Severity:[/bold]        {_SEVERITY_LABELS.get(settings['severity'] or 'all', settings['severity'])}",
+            f"  [bold]Output:[/bold]          {settings['output']} ({settings['fmt'].upper()})",
+            f"  [bold]Scrub:[/bold]           {'Yes' if settings['scrub'] else 'No'}",
+            f"  [bold]Manual checks:[/bold]   {'Walk through interactively' if settings.get('do_manual_checks') else 'Skip (included as unreviewed)'}",
         ]),
         title="[bold]Audit Configuration[/bold]",
         border_style="green",

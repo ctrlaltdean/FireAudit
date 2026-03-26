@@ -237,6 +237,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
         <tr>
           <th>Check ID</th>
           <th>Check</th>
+          <th>Result</th>
           <th>Guidance</th>
         </tr>
       </thead>
@@ -264,6 +265,15 @@ _TEMPLATE = r"""<!DOCTYPE html>
               </div>
               {% endfor %}
             </details>
+            {% endif %}
+          </td>
+          <td style="white-space:nowrap;">
+            {% if f.manual_result == "confirmed_ok" %}
+              <span class="badge pass">✓ Confirmed OK</span>
+            {% elif f.manual_result == "needs_attention" %}
+              <span class="badge fail">✗ Needs Attention</span>
+            {% else %}
+              <span class="badge manual_check">Not Reviewed</span>
             {% endif %}
           </td>
           <td>

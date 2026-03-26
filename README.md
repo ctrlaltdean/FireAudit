@@ -5,7 +5,7 @@ Offline firewall configuration auditing tool with multi-vendor support and compl
 ## Features
 
 - **9 vendors supported**: FortiGate, Palo Alto, Cisco ASA/FTD, pfSense, OPNsense, SonicWall, Sophos XG, WatchGuard
-- **37 audit rules** — 24 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
+- **38 audit rules** — 25 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
 - **4 compliance frameworks**: CIS, NIST 800-53, ISO 27001, CMMC/DFARS
 - **HTML and JSON report output** with per-framework compliance scores and a dedicated manual checks section
 - **Interactive wizard mode** — no CLI flags required
@@ -74,6 +74,7 @@ Each rule describes a **required** security configuration. Severity indicates ho
 | FW-ADM-008 | HTTPS management must use TLS 1.2 or higher | High |
 | FW-ADM-009 | Administrative login lockout must be configured | High |
 | FW-ADM-010 | SNMPv3 must use authPriv security level | High |
+| FW-ADM-011 | HTTPS management must not be exposed on WAN interfaces | Critical |
 
 #### Authentication
 | Rule ID | Requirement | Severity if Failed |

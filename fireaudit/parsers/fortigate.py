@@ -578,6 +578,7 @@ class FortiGateParser(BaseParser):
             interfaces.append({
                 "name": iface_name,
                 "type": _get(entry, "type"),
+                "role": _get(entry, "role"),   # "wan" | "lan" | "dmz" | "undefined" | None
                 "zone": _get(entry, "vdom"),
                 "ip_address": ip_addr,
                 "netmask": netmask,

@@ -20,7 +20,7 @@ class Finding:
     rule_id: str
     name: str
     severity: str
-    status: str          # "pass" | "fail" | "error" | "not_applicable"
+    status: str          # "pass" | "fail" | "error" | "not_applicable" | "manual_check"
     description: str = ""
     remediation: str = ""
     frameworks: dict = field(default_factory=dict)
@@ -28,6 +28,7 @@ class Finding:
     affected_values: list[Any] = field(default_factory=list)
     details: str = ""
     source_rule_file: str = ""
+    manual_result: str = ""  # "confirmed_ok" | "needs_attention" | "" (not reviewed)
 
     def to_dict(self) -> dict:
         from fireaudit.data.framework_urls import get_control_url
@@ -56,6 +57,7 @@ class Finding:
             "affected_values": [str(v) for v in self.affected_values],
             "details": self.details,
             "source_rule_file": self.source_rule_file,
+            "manual_result": self.manual_result,
         }
 
 

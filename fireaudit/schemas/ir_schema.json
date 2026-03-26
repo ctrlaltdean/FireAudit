@@ -257,6 +257,7 @@
         "properties": {
           "name": {"type": "string"},
           "type": {"type": ["string", "null"]},
+          "role": {"type": ["string", "null"]},
           "zone": {"type": ["string", "null"]},
           "ip_address": {"type": ["string", "null"]},
           "netmask": {"type": ["string", "null"]},

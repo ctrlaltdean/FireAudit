@@ -222,8 +222,9 @@ def audit(
     # Build report
     report = build_report(ir, findings, framework_filter=framework)
 
-    # --- Print summary to console ---
+    # --- Print summary + findings table to console ---
     _print_summary(report)
+    _print_findings_table(report)
 
     # --- Output ---
     if output:
@@ -396,6 +397,67 @@ def rules_reset(yes: bool) -> None:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _print_findings_table(report: dict) -> None:
+    """Print a Rich table of all findings to the console."""
+    findings = report.get("findings", [])
+    if not findings:
+        return
+
+    sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    sev_colors = {"critical": "red", "high": "orange1", "medium": "yellow", "low": "green", "info": "blue"}
+    status_order = {"fail": 0, "error": 1, "manual_check": 2, "pass": 3, "not_applicable": 4}
+
+    sorted_findings = sorted(
+        findings,
+        key=lambda f: (status_order.get(f["status"], 9), sev_order.get(f["severity"], 9)),
+    )
+
+    table = Table(box=box.SIMPLE_HEAD, show_lines=False, padding=(0, 1))
+    table.add_column("Rule ID", style="bold cyan", width=14, no_wrap=True)
+    table.add_column("Name", width=40)
+    table.add_column("Sev", width=9, no_wrap=True)
+    table.add_column("Status", width=12, no_wrap=True)
+    table.add_column("Detail", width=45)
+
+    for f in sorted_findings:
+        status = f["status"]
+        severity = f["severity"]
+        sev_color = sev_colors.get(severity, "white")
+
+        if status == "pass":
+            status_markup = "[green]✓ pass[/green]"
+        elif status == "fail":
+            status_markup = "[red]✗ fail[/red]"
+        elif status == "manual_check":
+            mr = f.get("manual_result", "")
+            if mr == "confirmed_ok":
+                status_markup = "[green]✓ confirmed[/green]"
+            elif mr == "needs_attention":
+                status_markup = "[red]✗ attention[/red]"
+            else:
+                status_markup = "[yellow]⚠ manual[/yellow]"
+        elif status == "error":
+            status_markup = "[magenta]! error[/magenta]"
+        else:
+            status_markup = f"[dim]{status}[/dim]"
+
+        detail = f.get("details", "") or ""
+        if not detail and status == "fail":
+            detail = (f.get("remediation") or "")[:80]
+        if len(detail) > 80:
+            detail = detail[:77] + "…"
+
+        table.add_row(
+            f["rule_id"],
+            f["name"],
+            f"[{sev_color}]{severity}[/{sev_color}]",
+            status_markup,
+            f"[dim]{detail}[/dim]" if detail else "",
+        )
+
+    console.print(table)
+
 
 def _print_summary(report: dict) -> None:
     summary = report["summary"]
