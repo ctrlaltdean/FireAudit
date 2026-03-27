@@ -557,6 +557,21 @@ class SophosXGParser(BaseParser):
             ir["interfaces"] = interfaces
             return
 
+        # Determine globally-enabled management protocols from <ManagementProtocols>.
+        # Sophos XG does not expose per-interface management restrictions in the XML
+        # backup; management availability is zone-based (LAN-zone interfaces receive
+        # management access, WAN-zone interfaces do not by default).
+        mgmt_el = cfg.find("Global/ManagementProtocols")
+        global_mgmt: list[str] = []
+        if _enabled(mgmt_el, "HTTPS") is not False:
+            global_mgmt.append("https")
+        if _enabled(mgmt_el, "HTTP") is True:
+            global_mgmt.append("http")
+        if _enabled(mgmt_el, "SSH") is not False:
+            global_mgmt.append("ssh")
+        if _enabled(mgmt_el, "Telnet") is True:
+            global_mgmt.append("telnet")
+
         for iface_el in net_el.findall("Interface"):
             name = _text(iface_el, "Name") or ""
             zone = _text(iface_el, "Zone")
@@ -566,15 +581,24 @@ class SophosXGParser(BaseParser):
             enabled = enabled_val if enabled_val is not None else True
             description = _text(iface_el, "Description")
 
+            role = infer_interface_role(zone, name)
+            # Populate management_access: WAN-zone interfaces have no management
+            # access by default; all other zones (LAN, DMZ, etc.) inherit the
+            # globally-enabled management protocols.
+            if role == "wan":
+                mgmt_access: list[str] = []
+            else:
+                mgmt_access = list(global_mgmt)
+
             interfaces.append({
                 "name": name,
                 "type": "ethernet",
-                "role": infer_interface_role(zone, name),
+                "role": role,
                 "zone": zone,
                 "ip_address": ip_addr,
                 "netmask": netmask,
                 "enabled": enabled,
-                "management_access": [],
+                "management_access": mgmt_access,
                 "description": description,
             })
 

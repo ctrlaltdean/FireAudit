@@ -238,6 +238,19 @@ class PaloAltoParser(BaseParser):
         })
         aa["ssh_settings"]["enabled"] = ssh_enabled
         aa["ssh_settings"]["version"] = 2
+        # SSH cipher / MAC / KEX from deviceconfig/system/ssh (PAN-OS 9.1+)
+        # Elements: ciphers/cipher, macs/mac, key-exchange/key (each a list)
+        ssh_cfg_el = sys_cfg.find("ssh") if sys_cfg is not None else None
+        if ssh_cfg_el is not None:
+            ciphers = [el.text.strip() for el in ssh_cfg_el.findall("ciphers/cipher") if el.text]
+            macs = [el.text.strip() for el in ssh_cfg_el.findall("macs/mac") if el.text]
+            kex = [el.text.strip() for el in ssh_cfg_el.findall("key-exchange/key") if el.text]
+            if ciphers:
+                aa["ssh_settings"]["ciphers"] = ciphers
+            if macs:
+                aa["ssh_settings"]["macs"] = macs
+            if kex:
+                aa["ssh_settings"]["kex_algorithms"] = kex
 
         # Telnet — disabled by default
         telnet_val = _text(svc, "disable-telnet") if svc is not None else None

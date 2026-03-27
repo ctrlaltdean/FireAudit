@@ -21,6 +21,22 @@ frameworks:
     - "AC.L2-3.1.10: Use session lock after period of inactivity"
   DISA_STIG:
     - "SRG-NET-000062: The network device must terminate management sessions after inactivity"
+not_applicable_when:
+  type: all_of
+  checks:
+    - type: condition
+      path: meta.vendor
+      condition:
+        type: in
+        values: [pfsense, opnsense]
+    - type: condition
+      path: admin_access.session_timeout_seconds
+      condition:
+        type: is_null
+not_applicable_reason: >
+  pfSense/OPNsense session timeout is a PHP compile-time constant and is not
+  exposed in config.xml. The timeout cannot be audited from the configuration
+  export; verify manually in System > Advanced > Admin Access.
 match:
   type: all_of
   checks:
@@ -37,3 +53,6 @@ remediation: >
   Set administrative session timeout to 10 minutes or less.
   FortiGate: 'config system global' → 'set admintimeout 10'
   (value is in minutes, so 10 = 600 seconds).
+  pfSense/OPNsense: Navigate to System > Advanced > Admin Access and set the
+  session timeout to 10 minutes. Note: this value is not stored in config.xml
+  and cannot be verified via automated audit.

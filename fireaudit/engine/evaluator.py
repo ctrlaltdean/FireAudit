@@ -350,6 +350,26 @@ class RuleEvaluator:
                 source_rule_file=rule.get("_source_file", ""),
             )
 
+        # not_applicable_when: if the condition is met, skip the rule as not applicable
+        na_spec = rule.get("not_applicable_when")
+        if na_spec:
+            try:
+                na_passed, na_detail, _, _ = self._apply_match(na_spec, ir)
+                if na_passed:
+                    return Finding(
+                        rule_id=rule_id,
+                        name=rule["name"],
+                        severity=rule.get("severity", "info"),
+                        status="not_applicable",
+                        description=rule.get("description", ""),
+                        remediation="",
+                        frameworks=rule.get("frameworks", {}),
+                        details=rule.get("not_applicable_reason", "Rule not applicable to this device/configuration."),
+                        source_rule_file=rule.get("_source_file", ""),
+                    )
+            except Exception as exc:
+                log.debug("Rule %s not_applicable_when raised exception: %s", rule_id, exc)
+
         try:
             status, details, affected_paths, affected_values = self._apply_match(match_spec, ir)
         except Exception as exc:

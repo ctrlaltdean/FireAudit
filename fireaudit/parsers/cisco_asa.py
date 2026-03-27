@@ -215,6 +215,38 @@ class CiscoASAParser(BaseParser):
         })
         aa["ssh_settings"]["enabled"] = ssh_enabled
         aa["ssh_settings"]["version"] = ssh_version
+        # SSH cipher / MAC extraction from 'ssh cipher encryption <level>' and
+        # 'ssh cipher integrity <level>' lines (ASA 9.x+).
+        # Level mappings per Cisco documentation:
+        #   fips   → FIPS-only algorithms (strong)
+        #   high   → AES-256 only
+        #   medium → AES-128 + AES-256 variants
+        #   low    → includes 3DES, RC4, HMAC-MD5 (weak)
+        # Custom level is treated as empty (vendor-specific, cannot enumerate here).
+        _ASA_CIPHER_LEVELS: dict[str, list[str]] = {
+            "fips":   ["aes128-cbc", "aes256-cbc", "aes128-ctr", "aes192-ctr", "aes256-ctr"],
+            "high":   ["aes256-cbc", "aes256-ctr"],
+            "medium": ["aes128-cbc", "aes192-cbc", "aes256-cbc", "aes128-ctr", "aes192-ctr", "aes256-ctr"],
+            "low":    ["aes128-cbc", "aes192-cbc", "aes256-cbc", "3des-cbc", "aes128-ctr", "aes192-ctr", "aes256-ctr"],
+        }
+        _ASA_MAC_LEVELS: dict[str, list[str]] = {
+            "fips":   ["hmac-sha2-256", "hmac-sha2-512"],
+            "high":   ["hmac-sha2-256", "hmac-sha2-512"],
+            "medium": ["hmac-sha1", "hmac-sha2-256", "hmac-sha2-512"],
+            "low":    ["hmac-md5", "hmac-md5-96", "hmac-sha1", "hmac-sha1-96", "hmac-sha2-256", "hmac-sha2-512"],
+        }
+        cipher_enc_line = root.find_line("ssh cipher encryption ")
+        if cipher_enc_line:
+            m = re.match(r"ssh cipher encryption (\S+)", cipher_enc_line)
+            if m:
+                level = m.group(1).lower()
+                aa["ssh_settings"]["ciphers"] = _ASA_CIPHER_LEVELS.get(level, [])
+        cipher_int_line = root.find_line("ssh cipher integrity ")
+        if cipher_int_line:
+            m = re.match(r"ssh cipher integrity (\S+)", cipher_int_line)
+            if m:
+                level = m.group(1).lower()
+                aa["ssh_settings"]["macs"] = _ASA_MAC_LEVELS.get(level, [])
 
         # --- Telnet ---
         telnet_lines = root.find_lines("telnet ")

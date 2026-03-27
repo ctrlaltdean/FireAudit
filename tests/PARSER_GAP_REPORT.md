@@ -1,6 +1,6 @@
 # FireAudit Parser & Rule Gap Report
 
-Generated: 2026-03-26
+Generated: 2026-03-27
 Fixtures tested: 10 files across 7 vendors
 
 ---
@@ -112,10 +112,15 @@ Fields present in raw config files that parsers do not currently extract.
 - `<loginprotection/>` (presence tag) sets `max_login_attempts = 10` (hardcoded default).
   The actual configured threshold is not read from pfSense's `loginprotect.inc` config.
 
-**Gap: WebGUI session timeout not in `<webgui>` block**
+**Gap: WebGUI session timeout not in `<webgui>` block** — PARTIALLY RESOLVED
 - pfSense does not expose the GUI session timeout in config.xml; it is a PHP constant.
-  `ir["admin_access"]["session_timeout_seconds"]` is always `None`.
-- **Impact**: FW-ADM-004 always fails for pfSense regardless of configured timeout.
+  `ir["admin_access"]["session_timeout_seconds"]` is `None` when the `<session-timeout>` element
+  is absent from the `<webgui>` block.
+- **Resolution**: FW-ADM-004 now uses `not_applicable_when` to return `not_applicable` status for
+  pfSense/OPNsense devices when `session_timeout_seconds` is null. If the `<webgui><session-timeout>`
+  element is present (as it is in the sample fixture), the rule evaluates normally.
+- **Residual gap**: The PHP default timeout (4 hours) is not auditable from the config export.
+  Verify manually in System > Advanced > Admin Access.
 
 ---
 
@@ -139,8 +144,18 @@ Fields present in raw config files that parsers do not currently extract.
   The `_extract_firewall_policies` uses `_enabled(rule_el, "Status")` which correctly strips and
   lowercases, so this is working correctly.
 
-**Gap: SSH cipher suite not extracted**
-- `ir["admin_access"]["ssh_settings"]["ciphers"]` is always empty.
+**Gap: SSH cipher suite not extracted** — DOCUMENTED (not extractable from schema)
+- Sophos XG XML backup does not include SSH cipher configuration under `<ManagementProtocols>`,
+  `<AdminSettings>`, or any `<Network>/<Interface>` element. SSH cipher lists are a system-level
+  OS configuration not exported in the device backup XML.
+- `ir["admin_access"]["ssh_settings"]["ciphers"]` remains empty for all Sophos XG configs.
+- **Impact**: FW-ADM-014 always returns `pass` (empty = secure defaults assumed) for Sophos XG.
+  Manual verification of SSH cipher configuration via CLI (`system ssh cipher list`) is required.
+
+**Gap: `management_access` per interface empty** — RESOLVED
+- Sophos XG `interfaces[].management_access` now populated based on zone role: LAN/DMZ interfaces
+  inherit the globally-enabled management protocols from `<ManagementProtocols>`; WAN interfaces
+  receive an empty list (blocked by default).
 
 ---
 
@@ -205,16 +220,16 @@ Fields that should be added to the IR to support future rules.
 | Field Path | Type | Purpose | Priority |
 |-----------|------|---------|----------|
 | `admin_access.snmp.allowed_hosts` | `list[str]` | SNMP host restriction check | High |
-| `admin_access.ssh_settings.ciphers` | `list[str]` | SSH cipher audit | Medium |
-| `admin_access.ssh_settings.macs` | `list[str]` | SSH MAC audit | Medium |
-| `admin_access.ssh_settings.kex_algorithms` | `list[str]` | SSH KEX audit | Medium |
+| `admin_access.ssh_settings.ciphers` | `list[str]` | SSH cipher audit | **RESOLVED** — extracted by FortiGate, ASA, pfSense, PaloAlto, SonicWall parsers |
+| `admin_access.ssh_settings.macs` | `list[str]` | SSH MAC audit | **RESOLVED** — extracted by FortiGate, ASA, pfSense, PaloAlto parsers |
+| `admin_access.ssh_settings.kex_algorithms` | `list[str]` | SSH KEX audit | **RESOLVED** — extracted by FortiGate, pfSense, PaloAlto parsers |
 | `admin_access.https_settings.hsts_enabled` | `bool` | HSTS header enforcement | Low |
 | `meta.firmware_version` | `str` | Firmware version for EOL/patching checks | High |
 | `authentication.password_policy.max_age_days` | `int` | Password rotation enforcement | High |
 | `vpn.ipsec_tunnels[].phase1.lifetime_seconds` | `int` | IKE SA lifetime check | Medium |
 | `vpn.ipsec_tunnels[].phase2.lifetime_seconds` | `int` | IPsec SA lifetime check | Medium |
 | `vpn.ipsec_tunnels[].auth_method` | `str` | PSK vs cert detection | Medium |
-| `interfaces[].management_access` | `list[str]` | Per-interface allowed management protocols | High (exists, needs population) |
+| `interfaces[].management_access` | `list[str]` | Per-interface allowed management protocols | **RESOLVED** — pfSense and Sophos XG now populate this field |
 | `logging.log_severity_level` | `str` | Minimum log severity captured | Medium |
 | `logging.syslog_servers[].encrypted` | `bool` | Per-server TLS flag (vs protocol string) | Low |
 
@@ -283,13 +298,43 @@ Ranked by CIS/NIST compliance impact and number of affected vendors/fixtures.
 13. **IPsec lifetime rules** (FW-VPN-PHASE1-LIFETIME, FW-VPN-PHASE2-LIFETIME)
     - Both Phase 1 and Phase 2 lifetime fields already exist in IR (`lifetime_seconds`)
 
-### P4 — Low (nice to have)
+### P4 — Low (nice to have) — STATUS AFTER 2026-03-27 SPRINT
 
-14. FortiGate: Extract SNMP `allowed_hosts` from `config hosts` nested block
-15. Add rule FW-VPN-PSK-VS-CERT (prefer certificate auth over PSK)
-16. Add rule for firewall policies with `service any` (all ports allowed)
-17. Populate `interfaces[].management_access` for all parsers that currently return empty list
-    (pfSense, Sophos XG)
+Items 14–17 were addressed:
+
+14. FortiGate: Extract SNMP `allowed_hosts` from `config hosts` nested block — **STILL OPEN**
+15. Add rule FW-VPN-PSK-VS-CERT (prefer certificate auth over PSK) — **STILL OPEN**
+16. Add rule for firewall policies with `service any` (all ports allowed) — **STILL OPEN**
+17. Populate `interfaces[].management_access` for pfSense and Sophos XG — **RESOLVED** (both now populated)
+
+**Additional P4 items completed 2026-03-27:**
+
+- **SSH cipher/MAC/KEX extraction — FortiGate**: Extracts `ssh-enc-algo`, `ssh-mac-algo`, `ssh-kex-algo`
+  from `config system global`. The existing sample fixtures do not include these settings (FortiOS
+  uses secure defaults unless explicitly configured), so ciphers remain empty for current fixtures.
+  FW-ADM-014 correctly passes (empty = no weak ciphers explicitly configured).
+
+- **SSH cipher/MAC extraction — Cisco ASA**: Extracts `ssh cipher encryption <level>` and
+  `ssh cipher integrity <level>`. Maps level strings (fips/high/medium/low) to algorithm lists.
+  Current fixture has no `ssh cipher` lines; ciphers remain empty.
+
+- **SSH cipher/MAC/KEX extraction — pfSense**: Extracts `<encryption-algorithms>`, `<macs>`,
+  `<kex-algorithms>` from `<ssh>` block (each as `<item>` children). Current fixture has no
+  cipher sub-elements in `<ssh>`; ciphers remain empty.
+
+- **SSH cipher/MAC/KEX extraction — Palo Alto**: Extracts from `deviceconfig/system/ssh/ciphers`,
+  `macs`, `key-exchange` (PAN-OS 9.1+). Current fixture has no `<ssh>` cipher config; empty.
+
+- **SSH cipher extraction — SonicWall**: Attempts to extract `<SSHCiphers>` or `<SSHEncryption>`
+  from `<ManagementSettings>`. Element not present in current fixture; remains empty.
+
+- **SSH cipher extraction — WatchGuard**: Not configurable via XML backup; correctly left empty.
+
+- **SSH cipher extraction — Sophos XG**: Not present in XML backup schema; documented above.
+
+- **FW-ADM-004 pfSense not_applicable handling**: The evaluator now supports `not_applicable_when`
+  blocks in rule YAML. FW-ADM-004 uses this to return `not_applicable` for pfSense/OPNsense when
+  session_timeout_seconds is null (not exported in config.xml).
 
 ---
 
@@ -311,7 +356,9 @@ Ranked by CIS/NIST compliance impact and number of affected vendors/fixtures.
 
 ---
 
-## 6. Simple Fixes Applied in This Session
+## 6. Fixes Applied
+
+### 6.1 P1/P2 Fixes (2026-03-26 sprint)
 
 The following P1/P2 bugs were fixed during this analysis:
 
@@ -338,3 +385,16 @@ The following P1/P2 bugs were fixed during this analysis:
 | XG-sample | 16 | 24 | 0 | 0 |
 
 Zero parse errors and zero rule evaluation errors across all fixtures.
+
+### 6.2 P4 Fixes (2026-03-27 sprint)
+
+| File | Fix | Rule Impact |
+|------|-----|------------|
+| `fireaudit/engine/evaluator.py` | Added `not_applicable_when` support: if the YAML block condition is satisfied, the rule returns `not_applicable` with the `not_applicable_reason` message | Enables vendor-specific or configuration-state-specific N/A handling without modifying rule logic |
+| `rules/admin/FW-ADM-004-admin-session-timeout.yaml` | Added `not_applicable_when` block targeting pfSense/OPNsense with null `session_timeout_seconds`; updated remediation note | FW-ADM-004 now returns `not_applicable` for pfSense when session timeout is not exported in config.xml; evaluates normally when `<session-timeout>` element is present |
+| `fireaudit/parsers/fortigate.py` | Extract `ssh-enc-algo`, `ssh-mac-algo`, `ssh-kex-algo` from `config system global` using `_list_val`; populates `ssh_settings.ciphers`, `.macs`, `.kex_algorithms` | FW-ADM-014 will now detect weak SSH ciphers on FortiGate when `set ssh-enc-algo` includes weak algorithms |
+| `fireaudit/parsers/cisco_asa.py` | Parse `ssh cipher encryption <level>` and `ssh cipher integrity <level>` lines; map level strings to algorithm lists | FW-ADM-014 will now detect weak cipher configurations on ASA (e.g., `ssh cipher encryption low` will expose 3des-cbc) |
+| `fireaudit/parsers/pfsense.py` | Extract `<encryption-algorithms>`, `<macs>`, `<kex-algorithms>` from `<ssh>` block; update `_extract_interfaces` to accept `system` element and populate `management_access` based on zone (LAN=global mgmt protocols, WAN=empty) | FW-ADM-014 will detect weak ciphers when configured; interfaces now show realistic management access |
+| `fireaudit/parsers/paloalto.py` | Extract SSH ciphers/MACs/KEX from `deviceconfig/system/ssh` (PAN-OS 9.1+) | FW-ADM-014 will detect weak ciphers when explicitly configured on PAN-OS |
+| `fireaudit/parsers/sonicwall.py` | Attempt extraction of `<SSHCiphers>`/`<SSHEncryption>` from `<ManagementSettings>`; add `import re` | FW-ADM-014 will detect weak ciphers if SonicOS firmware exposes these elements |
+| `fireaudit/parsers/sophos_xg.py` | Populate `management_access` per interface based on zone role (LAN inherits global management protocols from `<ManagementProtocols>`, WAN is empty) | FW-ADM-011 and similar rules that inspect interface management access will now produce accurate results for Sophos XG |

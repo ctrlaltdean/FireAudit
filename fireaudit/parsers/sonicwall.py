@@ -27,6 +27,7 @@ Root structure::
 
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
 from typing import Any
 
@@ -215,6 +216,15 @@ class SonicWallParser(BaseParser):
         aa["https_settings"]["enabled"] = https_enabled
         aa["ssh_settings"]["enabled"] = ssh_enabled
         aa["ssh_settings"]["version"] = 2
+        # SSH cipher extraction — SonicOS may expose SSH cipher config under
+        # <ManagementSettings> as <SSHCiphers> or <SSHEncryption>.  These elements
+        # are not present in all firmware versions; leave as empty list if absent.
+        ssh_ciphers_raw = _text(mgmt, "SSHCiphers") or _text(mgmt, "SSHEncryption")
+        if ssh_ciphers_raw:
+            # Value may be a comma- or space-separated list of cipher names.
+            ciphers = [c.strip() for c in re.split(r"[,\s]+", ssh_ciphers_raw) if c.strip()]
+            if ciphers:
+                aa["ssh_settings"]["ciphers"] = ciphers
 
         # --- TLS minimum version for HTTPS management ---
         # SonicOS may use TLSMinVersion, MinTLSVersion, or SSLMinVersion

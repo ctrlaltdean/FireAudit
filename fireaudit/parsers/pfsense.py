@@ -107,7 +107,7 @@ class PfSenseParser(BaseParser):
         self._extract_logging(system, syslog, ir)
         self._extract_vpn(ipsec, openvpn, ir)
         self._extract_firewall_policies(filter_el, ir)
-        self._extract_interfaces(interfaces, ir)
+        self._extract_interfaces(interfaces, system, ir)
 
         return ir
 
@@ -171,6 +171,24 @@ class PfSenseParser(BaseParser):
         })
         aa["ssh_settings"]["enabled"] = ssh_enabled
         aa["ssh_settings"]["version"] = 2
+        # SSH cipher / MAC / KEX from <ssh><encryption-algorithms>, <macs>, <kex-algorithms>
+        # Each contains <item> children listing individual algorithm names.
+        if ssh_el is not None:
+            enc_el = ssh_el.find("encryption-algorithms")
+            if enc_el is not None:
+                ciphers = [item.text.strip() for item in enc_el.findall("item") if item.text]
+                if ciphers:
+                    aa["ssh_settings"]["ciphers"] = ciphers
+            macs_el = ssh_el.find("macs")
+            if macs_el is not None:
+                macs = [item.text.strip() for item in macs_el.findall("item") if item.text]
+                if macs:
+                    aa["ssh_settings"]["macs"] = macs
+            kex_el = ssh_el.find("kex-algorithms")
+            if kex_el is not None:
+                kex = [item.text.strip() for item in kex_el.findall("item") if item.text]
+                if kex:
+                    aa["ssh_settings"]["kex_algorithms"] = kex
 
         # --- Telnet: not supported by pfSense ---
         protocols.append({"protocol": "telnet", "enabled": False, "port": 23, "interfaces": [], "version": None})
@@ -509,11 +527,38 @@ class PfSenseParser(BaseParser):
             return [addr]
         return ["any"]
 
-    def _extract_interfaces(self, interfaces: ET.Element | None, ir: dict) -> None:
+    def _extract_interfaces(
+        self,
+        interfaces: ET.Element | None,
+        system: ET.Element | None,
+        ir: dict,
+    ) -> None:
         iface_list: list[dict] = []
         if interfaces is None:
             ir["interfaces"] = iface_list
             return
+
+        # Determine globally-enabled management protocols from <system> config.
+        # pfSense does not restrict management per-interface via XML; management
+        # is available on LAN (and any explicitly-opened interface) by convention.
+        webgui_proto = "https"
+        if system is not None:
+            webgui = system.find("webgui")
+            if webgui is not None:
+                webgui_proto = (_text(webgui, "protocol") or "https").lower()
+
+        ssh_el = system.find("ssh") if system is not None else None
+        ssh_globally_enabled = (
+            _exists(system, "ssh/enable") or _bool_tag(ssh_el, "enable")
+        ) if ssh_el is not None else False
+
+        lan_mgmt: list[str] = []
+        if webgui_proto in ("https",):
+            lan_mgmt.append("https")
+        elif webgui_proto == "http":
+            lan_mgmt.append("http")
+        if ssh_globally_enabled:
+            lan_mgmt.append("ssh")
 
         # Each child of <interfaces> is a named interface (wan, lan, opt1, etc.)
         for iface_el in list(interfaces):
@@ -530,15 +575,25 @@ class PfSenseParser(BaseParser):
                 ip_addr = ip_type
                 netmask = _text(iface_el, "subnet")
 
+            # Populate management_access:
+            # - LAN and internal opt* interfaces: inherit globally-enabled protocols.
+            # - WAN: empty by default (pfSense blocks WAN management via firewall rules
+            #   unless explicitly opened — cannot be determined from config.xml alone).
+            role = infer_interface_role(iface_logical_name, if_name)
+            if role == "wan":
+                mgmt_access: list[str] = []
+            else:
+                mgmt_access = list(lan_mgmt)
+
             iface_list.append({
                 "name": if_name,
                 "type": _text(iface_el, "type") or "physical",
-                "role": infer_interface_role(iface_logical_name, if_name),
+                "role": role,
                 "zone": iface_logical_name,
                 "ip_address": ip_addr,
                 "netmask": netmask,
                 "enabled": not disabled,
-                "management_access": [],
+                "management_access": mgmt_access,
                 "description": description,
             })
 

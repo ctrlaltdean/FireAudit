@@ -256,6 +256,17 @@ class FortiGateParser(BaseParser):
         protocols.append({"protocol": "ssh", "enabled": ssh_enabled, "port": _int_val(sys_global, "admin-ssh-port") or 22, "interfaces": [], "version": str(ssh_version)})
         aa["ssh_settings"]["enabled"] = ssh_enabled
         aa["ssh_settings"]["version"] = ssh_version
+        # SSH cipher / MAC / KEX — FortiOS 7.x: set ssh-enc-algo / ssh-mac-algo / ssh-kex-algo
+        # under 'config system global'.  Multi-value set produces a list via _list_val.
+        ssh_enc = _list_val(sys_global, "ssh-enc-algo")
+        ssh_mac = _list_val(sys_global, "ssh-mac-algo")
+        ssh_kex = _list_val(sys_global, "ssh-kex-algo")
+        if ssh_enc:
+            aa["ssh_settings"]["ciphers"] = ssh_enc
+        if ssh_mac:
+            aa["ssh_settings"]["macs"] = ssh_mac
+        if ssh_kex:
+            aa["ssh_settings"]["kex_algorithms"] = ssh_kex
 
         # HTTPS
         https_enabled = _get(sys_global, "admin-https") != "disable"
