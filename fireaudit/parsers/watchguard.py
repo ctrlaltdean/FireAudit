@@ -166,6 +166,15 @@ class WatchGuardParser(BaseParser):
                 f"Unexpected root element <{root.tag}>. Expected <policy> or <profile>"
             )
 
+        # Detect old Fireware XML schema (X-series, pre-v11).
+        # Old schema has <policy-list> as a direct child instead of the
+        # v11+ children (<setup>, <interface>, <policy-tag>, <logging>, etc.).
+        if root.find("policy-list") is not None:
+            raise ValueError(
+                "WatchGuard old Fireware XML schema (pre-v11) detected. "
+                "Export the config using Fireware v11+ Policy Manager for compatibility."
+            )
+
         ir = self._base_ir()
 
         self._extract_meta(root, ir)

@@ -1,0 +1,44 @@
+rule_id: FW-VPN-011
+name: IPsec Phase 1 (IKE SA) Lifetime Must Not Exceed 86400 Seconds
+description: >
+  The IKE Phase 1 (ISAKMP SA) lifetime defines how long the key material
+  used to protect IKE negotiations remains valid. Excessively long lifetimes
+  increase the risk that compromised key material can be exploited over an
+  extended period without forced renegotiation. The Phase 1 lifetime should
+  be set to 86400 seconds (24 hours) or fewer. A shorter lifetime of 28800
+  seconds (8 hours) is recommended for high-security environments.
+severity: medium
+vendors:
+  - all
+frameworks:
+  DISA_STIG:
+    - "SRG-NET-000230: The VPN gateway must renegotiate IKE security associations after a defined period"
+  CIS:
+    - "CIS FW Benchmark 4.3: Configure appropriate SA lifetime for IKE Phase 1"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "SC-13: Cryptographic Protection"
+  NIST_CSF:
+    - "PR.DS-2: Data-in-transit is protected"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms to prevent unauthorized disclosure"
+match:
+  type: foreach
+  path: vpn.ipsec_tunnels
+  filter:
+    field: enabled
+    condition:
+      type: is_true
+  checks:
+    - path: phase1.lifetime_seconds
+      condition:
+        type: lte
+        value: 86400
+remediation: >
+  Set the IKE Phase 1 SA lifetime to 86400 seconds (24 hours) or fewer.
+  FortiGate: 'config vpn ipsec phase1-interface' → edit <tunnel-name> →
+  'set keylife 86400' → end. A value of 28800 (8 hours) is recommended
+  for high-security environments. Coordinate changes with remote VPN peers
+  as both endpoints must agree on the lifetime value.

@@ -216,6 +216,29 @@ class SonicWallParser(BaseParser):
         aa["ssh_settings"]["enabled"] = ssh_enabled
         aa["ssh_settings"]["version"] = 2
 
+        # --- TLS minimum version for HTTPS management ---
+        # SonicOS may use TLSMinVersion, MinTLSVersion, or SSLMinVersion
+        tls_min_raw = (
+            _text(mgmt, "TLSMinVersion")
+            or _text(mgmt, "MinTLSVersion")
+            or _text(mgmt, "SSLMinVersion")
+        )
+        if tls_min_raw:
+            raw = tls_min_raw.strip()
+            # Normalise variants: "TLS1.2", "TLS12", "TLSv1.2", "TLS 1.2" -> "TLSv1.2"
+            raw_lower = raw.lower().replace(" ", "").replace("_", "")
+            if raw_lower in ("tls1.2", "tls12", "tlsv1.2"):
+                tls_ver = "TLSv1.2"
+            elif raw_lower in ("tls1.3", "tls13", "tlsv1.3"):
+                tls_ver = "TLSv1.3"
+            elif raw_lower in ("tls1.1", "tls11", "tlsv1.1"):
+                tls_ver = "TLSv1.1"
+            elif raw_lower in ("tls1.0", "tls10", "tlsv1.0", "tls1"):
+                tls_ver = "TLSv1.0"
+            else:
+                tls_ver = _normalize_tls(raw)
+            aa["https_settings"]["tls_versions"] = [tls_ver]
+
         # --- Session timeout (minutes -> seconds) ---
         timeout_min = _int(mgmt, "AdminIdleTimeout")
         aa["session_timeout_seconds"] = timeout_min * 60 if timeout_min is not None else None
@@ -279,6 +302,10 @@ class SonicWallParser(BaseParser):
             pp["require_numbers"] = complexity
             pp["require_special"] = complexity
         pp["lockout_threshold"] = _int(mgmt, "MaxLoginAttempts")
+        # Password history count — SonicOS may use PasswordHistory or PwdHistory
+        history = _int(mgmt, "PasswordHistory") or _int(mgmt, "PwdHistory")
+        if history is not None:
+            pp["history_count"] = history
 
         # --- Local users ---
         users: list[dict] = []

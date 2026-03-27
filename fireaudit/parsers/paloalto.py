@@ -435,25 +435,37 @@ class PaloAltoParser(BaseParser):
 
         # --- Syslog servers ---
         # PAN-OS: syslog servers defined in syslog server profiles, referenced by log-forwarding profiles
-        # Location: ./devices/entry/deviceconfig/syslog/using/entry (older) OR
-        #           ./shared/log-forwarding or vsys log-settings
+        # Location: ./devices/entry/deviceconfig/syslog/server/entry[@name]
+        #           Each entry has <server>IP</server><port>514</port><transport>UDP</transport>
         syslog_servers: list[dict] = []
 
-        # Check device-level syslog profiles
+        # Build a lookup map of syslog profile name -> list of server dicts
+        # from deviceconfig/syslog/server/entry elements.
+        # Profile name is the entry's name attribute; within each profile entry,
+        # <server> children are the individual server entries.
+        syslog_profile_map: dict[str, list[dict]] = {}
         device_syslog = device.find("deviceconfig/syslog") if device is not None else None
         if device_syslog is not None:
             for server_entry in _entries(device_syslog, "server"):
-                host = _text(server_entry, "server") or server_entry.get("name", "")
+                profile_name = server_entry.get("name", "")
+                host = _text(server_entry, "server")
                 if host:
-                    syslog_servers.append({
+                    srv = {
                         "host": host,
                         "port": _int(server_entry, "port") or 514,
                         "protocol": (_text(server_entry, "transport") or "UDP").lower(),
                         "facility": _text(server_entry, "facility"),
                         "severity": _text(server_entry, "format"),
-                    })
+                    }
+                    if profile_name not in syslog_profile_map:
+                        syslog_profile_map[profile_name] = []
+                    syslog_profile_map[profile_name].append(srv)
+                    # Also add directly to the server list (device-level profiles are always active)
+                    syslog_servers.append(srv)
 
-        # Check log-forwarding profiles under vsys for syslog destinations
+        # Check log-forwarding profiles under vsys for syslog destinations.
+        # Resolve profile name references to actual server IPs via the profile map.
+        seen_hosts: set[str] = {s["host"] for s in syslog_servers}
         if vsys is not None:
             log_settings = vsys.find("log-settings")
             if log_settings is not None:
@@ -462,18 +474,30 @@ class PaloAltoParser(BaseParser):
                         send_syslog = match.find("send-syslog")
                         if send_syslog is not None:
                             for server_el in _entries(send_syslog, "using-syslog-setting"):
-                                server_name = server_el.get("name", "")
-                                if server_name:
-                                    syslog_servers.append({
-                                        "host": server_name,  # Name reference, not IP
-                                        "port": 514,
-                                        "protocol": "udp",
-                                        "facility": None,
-                                        "severity": None,
-                                    })
+                                ref_name = server_el.get("name", "")
+                                if not ref_name:
+                                    continue
+                                # Resolve profile name to actual server entries
+                                resolved = syslog_profile_map.get(ref_name)
+                                if resolved:
+                                    for srv in resolved:
+                                        if srv["host"] not in seen_hosts:
+                                            syslog_servers.append(srv)
+                                            seen_hosts.add(srv["host"])
+                                else:
+                                    # Profile not found in device-level map; store name as fallback
+                                    if ref_name not in seen_hosts:
+                                        syslog_servers.append({
+                                            "host": ref_name,
+                                            "port": 514,
+                                            "protocol": "udp",
+                                            "facility": None,
+                                            "severity": None,
+                                        })
+                                        seen_hosts.add(ref_name)
 
-        # Also check shared log-forwarding
-        shared_lf = device.find("../shared/log-forwarding") if device is not None else None
+        # Also check shared log-forwarding (unused result kept for future extension)
+        _shared_lf = device.find("../shared/log-forwarding") if device is not None else None
 
         log["syslog_servers"] = syslog_servers
         log["local_logging_enabled"] = True  # PAN-OS always logs locally to MP

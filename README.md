@@ -5,7 +5,7 @@ Offline firewall configuration auditing tool with multi-vendor support and compl
 ## Features
 
 - **9 vendors supported**: FortiGate, Palo Alto, Cisco ASA/FTD, pfSense, OPNsense, SonicWall, Sophos XG, WatchGuard
-- **38 audit rules** — 25 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
+- **42 audit rules** — 29 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
 - **4 compliance frameworks**: CIS, NIST 800-53, ISO 27001, CMMC/DFARS
 - **HTML and JSON report output** with per-framework compliance scores and a dedicated manual checks section
 - **Interactive wizard mode** — no CLI flags required
@@ -59,7 +59,7 @@ fireaudit parse -c firewall.conf -v fortigate -o ir.json
 
 Each rule describes a **required** security configuration. Severity indicates how critical the finding is when a rule **fails** (i.e. when the requirement is not met).
 
-### Automated Checks (24 rules)
+### Automated Checks (29 rules)
 
 #### Administration
 | Rule ID | Requirement | Severity if Failed |
@@ -75,6 +75,7 @@ Each rule describes a **required** security configuration. Severity indicates ho
 | FW-ADM-009 | Administrative login lockout must be configured | High |
 | FW-ADM-010 | SNMPv3 must use authPriv security level | High |
 | FW-ADM-011 | HTTPS management must not be exposed on WAN interfaces | Critical |
+| FW-ADM-012 | SSH management must not be exposed on WAN interfaces | Critical |
 
 #### Authentication
 | Rule ID | Requirement | Severity if Failed |
@@ -86,6 +87,7 @@ Each rule describes a **required** security configuration. Severity indicates ho
 | FW-AUTH-005 | Account lockout threshold must be 5 attempts or fewer | High |
 | FW-AUTH-006 | Multi-factor authentication must be required for administrative access | High |
 | FW-AUTH-007 | Centralized authentication (RADIUS or TACACS+) must be configured | Medium |
+| FW-AUTH-009 | Password maximum age must be enforced (90 days or fewer) | Medium |
 
 #### Logging
 | Rule ID | Requirement | Severity if Failed |
@@ -120,6 +122,8 @@ Each rule describes a **required** security configuration. Severity indicates ho
 | FW-VPN-008 | IKEv1 aggressive mode must be disabled | High |
 | FW-VPN-009 | SSL VPN must require multi-factor authentication | High |
 | FW-VPN-010 | SSL VPN split tunneling must be disabled or restricted | Medium |
+| FW-VPN-011 | IPsec Phase 1 (IKE SA) lifetime must not exceed 86400 seconds | Medium |
+| FW-VPN-012 | IPsec Phase 2 (IPsec SA) lifetime must not exceed 3600 seconds | Medium |
 
 ### Manual Verification Checklist (13 items)
 

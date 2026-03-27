@@ -1,0 +1,53 @@
+rule_id: FW-ADM-012
+name: SSH Management Must Not Be Exposed on WAN Interfaces
+description: >
+  Enabling SSH administrative access on a WAN-facing interface exposes the
+  management plane directly to the internet, providing a publicly reachable
+  attack surface for credential brute-force, SSH daemon exploits, and
+  zero-day vulnerabilities in the SSH service. Administrative access must
+  be restricted to dedicated management interfaces, internal VLANs, or
+  accessed via an out-of-band management network. If remote administration
+  is required, it must be tunnelled through a VPN, not exposed directly on
+  a WAN interface.
+severity: critical
+vendors:
+  - all
+frameworks:
+  DISA_STIG:
+    - "SRG-NET-000049: The network device must limit management connections to authorized IP addresses and interfaces"
+  CIS:
+    - "CIS FW Benchmark 1.2: Restrict management access to dedicated interfaces"
+  NIST_800-53:
+    - "AC-17: Remote Access"
+    - "CM-7: Least Functionality"
+    - "SC-7: Boundary Protection"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
+    - "PR.PT-3: Principle of least functionality is incorporated"
+  ISO27001:
+    - "A.9.4.2: Secure log-on procedures"
+    - "A.13.1.3: Segregation in networks"
+  CMMC:
+    - "AC.L1-3.1.2: Limit system access to the types of transactions and functions that authorized users are permitted to execute"
+    - "SC.L2-3.13.1: Monitor, control, and protect organizational communications"
+match:
+  type: not_exists_where
+  path: interfaces
+  where:
+    enabled:
+      type: is_true
+    role:
+      type: eq
+      value: wan
+    management_access:
+      type: intersects
+      values:
+        - ssh
+remediation: >
+  Remove SSH from the allowaccess list on all WAN interfaces.
+  FortiGate: 'config system interface' → edit <wan-interface> →
+  'set allowaccess ping' (remove ssh from the list) → end.
+  If remote management via SSH is required, configure IPsec VPN or SSL VPN
+  first and access the device only through the VPN tunnel. Alternatively,
+  restrict access using trusted-hosts (FW-ADM-005) if WAN exposure cannot
+  be avoided, but elimination is strongly preferred.

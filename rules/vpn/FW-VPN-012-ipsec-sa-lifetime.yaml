@@ -1,0 +1,44 @@
+rule_id: FW-VPN-012
+name: IPsec Phase 2 (IPsec SA) Lifetime Must Not Exceed 3600 Seconds
+description: >
+  The IPsec Phase 2 (ESP/AH SA) lifetime defines how long session encryption
+  keys remain valid before renegotiation is required. Excessively long Phase 2
+  lifetimes allow attackers more time to perform cryptanalysis on captured
+  traffic if the session keys are compromised. The Phase 2 lifetime should be
+  set to 3600 seconds (1 hour) or fewer. Shorter lifetimes such as 1800 seconds
+  (30 minutes) are preferred in high-security environments.
+severity: medium
+vendors:
+  - all
+frameworks:
+  DISA_STIG:
+    - "SRG-NET-000230: The VPN gateway must renegotiate IPsec security associations after a defined period"
+  CIS:
+    - "CIS FW Benchmark 4.3: Configure appropriate SA lifetime for IPsec Phase 2"
+  NIST_800-53:
+    - "SC-8: Transmission Confidentiality and Integrity"
+    - "SC-13: Cryptographic Protection"
+  NIST_CSF:
+    - "PR.DS-2: Data-in-transit is protected"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+  CMMC:
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms to prevent unauthorized disclosure"
+match:
+  type: foreach
+  path: vpn.ipsec_tunnels
+  filter:
+    field: enabled
+    condition:
+      type: is_true
+  checks:
+    - path: phase2.lifetime_seconds
+      condition:
+        type: lte
+        value: 3600
+remediation: >
+  Set the IPsec Phase 2 SA lifetime to 3600 seconds (1 hour) or fewer.
+  FortiGate: 'config vpn ipsec phase2-interface' → edit <tunnel-name> →
+  'set keylifeseconds 3600' → end. A value of 1800 (30 minutes) is
+  recommended for high-security environments. Coordinate changes with
+  remote VPN peers as both endpoints must agree on the lifetime value.
