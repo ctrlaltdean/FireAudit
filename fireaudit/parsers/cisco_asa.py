@@ -269,11 +269,14 @@ class CiscoASAParser(BaseParser):
         aa["management_protocols"] = protocols
 
         # --- Session timeout ---
+        # Note: ASA 'timeout 0' means "no timeout" (infinite), which is the same as
+        # not having a timeout configured. Treat 0 as None so timeout rules fire correctly.
         timeout_line = root.find_line("console timeout ") or root.find_line("ssh timeout ")
         if timeout_line:
             m = re.search(r"timeout (\d+)", timeout_line)
             if m:
-                aa["session_timeout_seconds"] = int(m.group(1)) * 60
+                val = int(m.group(1))
+                aa["session_timeout_seconds"] = val * 60 if val > 0 else None
         # Also check 'exec-timeout' for console
         for block in root.find_blocks("line "):
             exec_to = block.find_line("exec-timeout ")
@@ -282,7 +285,9 @@ class CiscoASAParser(BaseParser):
                 if m:
                     mins = int(m.group(1))
                     secs = int(m.group(2)) if m.group(2) else 0
-                    aa["session_timeout_seconds"] = mins * 60 + secs
+                    total = mins * 60 + secs
+                    # exec-timeout 0 0 means no timeout on ASA — treat as None
+                    aa["session_timeout_seconds"] = total if total > 0 else None
                     break
 
         # --- Lockout ---

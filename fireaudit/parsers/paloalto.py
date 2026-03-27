@@ -146,7 +146,7 @@ class PaloAltoParser(BaseParser):
 
         self._extract_meta(config, device, sys_cfg, ir)
         self._extract_admin_access(sys_cfg, device, ir)
-        self._extract_authentication(mgt, ir)
+        self._extract_authentication(mgt, device, shared, ir)
         self._extract_logging(device, vsys, sys_cfg, ir)
         self._extract_vpn(network, ir)
         self._extract_firewall_policies(vsys, ir)
@@ -301,7 +301,13 @@ class PaloAltoParser(BaseParser):
             elif v1_el is not None:
                 aa["snmp"]["version"] = "v1"
 
-    def _extract_authentication(self, mgt: ET.Element | None, ir: dict) -> None:
+    def _extract_authentication(
+        self,
+        mgt: ET.Element | None,
+        device: ET.Element | None,
+        shared: ET.Element | None,
+        ir: dict,
+    ) -> None:
         auth = ir["authentication"]
 
         # --- Password complexity ---
@@ -374,21 +380,38 @@ class PaloAltoParser(BaseParser):
         auth["default_admin_renamed"] = not default_admin_exists
 
         # --- Remote auth servers ---
-        # Radius/TACACS/LDAP are defined in server profiles
-        # We look for server-profiles under shared or device
+        # PAN-OS server profiles are under ./devices/entry/server-profile/<type>
+        # and ./shared/server-profile/<type>.
         ra = auth["remote_auth"]
         servers: list[dict] = []
 
-        # These paths may vary — check both shared and mgt-config
-        for profile_container_path in [
-            "server-profile/radius",
-            "server-profile/tacplus",
-            "server-profile/ldap",
-        ]:
-            pass  # Handled below via device-level search
+        for scope in [s for s in [device, shared] if s is not None]:
+            # RADIUS
+            for entry in _entries(scope, "server-profile/radius"):
+                for srv in _entries(entry, "server"):
+                    host = _text(srv, "server") or srv.get("name", "")
+                    port = _int(srv, "port") or 1812
+                    if host:
+                        servers.append({"type": "radius", "host": host, "port": port})
+                        ra["radius_enabled"] = True
+            # TACACS+
+            for entry in _entries(scope, "server-profile/tacplus"):
+                for srv in _entries(entry, "server"):
+                    host = _text(srv, "server") or srv.get("name", "")
+                    port = _int(srv, "port") or 49
+                    if host:
+                        servers.append({"type": "tacacs+", "host": host, "port": port})
+                        ra["tacacs_enabled"] = True
+            # LDAP
+            for entry in _entries(scope, "server-profile/ldap"):
+                for srv in _entries(entry, "server"):
+                    host = _text(srv, "server") or srv.get("name", "")
+                    port = _int(srv, "port") or 389
+                    if host:
+                        servers.append({"type": "ldap", "host": host, "port": port})
+                        ra["ldap_enabled"] = True
 
-        # PAN-OS radius: ./shared/server-profile/radius or ./devices/entry/server-profile/radius
-        # We'll mark as enabled if any profile entries exist
+        ra["servers"] = servers
 
     def _extract_logging(
         self,

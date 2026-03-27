@@ -102,7 +102,7 @@ class PfSenseParser(BaseParser):
         openvpn = root.find("openvpn")
 
         self._extract_meta(root, system, ir)
-        self._extract_admin_access(system, ir)
+        self._extract_admin_access(system, snmpd, ir)
         self._extract_authentication(system, ir)
         self._extract_logging(system, syslog, ir)
         self._extract_vpn(ipsec, openvpn, ir)
@@ -126,7 +126,7 @@ class PfSenseParser(BaseParser):
             if hostname and domain not in hostname:
                 ir["meta"]["hostname"] = f"{hostname}.{domain}"
 
-    def _extract_admin_access(self, system: ET.Element | None, ir: dict) -> None:
+    def _extract_admin_access(self, system: ET.Element | None, snmpd: ET.Element | None, ir: dict) -> None:
         aa = ir["admin_access"]
         protocols: list[dict] = []
 
@@ -188,8 +188,17 @@ class PfSenseParser(BaseParser):
         aa["max_login_attempts"] = 10 if login_protection else None  # default when enabled
 
         # --- SNMP ---
-        # handled in _extract_logging but we set snmp here from snmpd at root level
-        # (passed via system ref — actual extraction happens via snmpd param)
+        # pfSense stores SNMP config in the top-level <snmpd> element.
+        if snmpd is not None:
+            snmp = aa["snmp"]
+            snmp_enabled = _bool_tag(snmpd, "enable")
+            snmp["enabled"] = snmp_enabled
+            if snmp_enabled:
+                rocommunity = _text(snmpd, "rocommunity")
+                if rocommunity:
+                    snmp["community_strings"] = [rocommunity]
+                    snmp["version"] = "v2c"
+                # pfSense does not natively support SNMPv3 without packages
 
         # --- Banner ---
         banner = _text(system, "motd") or _text(system, "loginprotection")

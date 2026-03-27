@@ -187,6 +187,18 @@ class FortiGateParser(BaseParser):
         sections = _parse_config(content)
         ir = self._base_ir()
 
+        # Pre-scan for firmware version in header comment before tokenization discards it.
+        # FortiOS exports begin with: #config-version=FGVMXXXX-7.2.5-FW-build1517-...:opmode=...
+        for line in content.splitlines():
+            if line.startswith("#config-version="):
+                # Extract the firmware portion: everything after '=' up to the '-FW-' or ':'
+                raw = line[len("#config-version="):]
+                # Format: <model>-<major>.<minor>.<patch>-FW-build<n>-<date>:opmode=...
+                m = re.search(r"-([\d]+\.[\d]+\.[\d]+)", raw)
+                if m:
+                    ir["meta"]["firmware_version"] = m.group(1)
+                break
+
         self._extract_meta(sections, ir)
         self._extract_admin_access(sections, ir)
         self._extract_authentication(sections, ir)
@@ -205,7 +217,10 @@ class FortiGateParser(BaseParser):
     def _extract_meta(self, sections: dict[str, _FGBlock], ir: dict) -> None:
         sys_global = sections.get("system global", _FGBlock())
         ir["meta"]["hostname"] = _get(sys_global, "hostname")
-        ir["meta"]["firmware_version"] = _get(sys_global, "firmware-version")
+        # Only override the pre-scanned firmware version if the config block has an explicit value
+        fw_ver_from_block = _get(sys_global, "firmware-version")
+        if fw_ver_from_block is not None:
+            ir["meta"]["firmware_version"] = fw_ver_from_block
 
         # Try version comment at top of file (captured as settings on root)
         # FortiGate files often begin with: #config-version=FGVMXXXX-x.x.x...
