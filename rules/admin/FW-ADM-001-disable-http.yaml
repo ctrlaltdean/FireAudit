@@ -37,3 +37,28 @@ remediation: >
   Disable HTTP management access. On FortiGate: 'config system global' →
   'set admin-http disable'. Ensure HTTPS is enabled and uses TLS 1.2+.
   Remove HTTP from interface allowaccess settings.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI — remove http from allowaccess on each affected interface
+    config system interface
+        edit <interface-name>
+            set allowaccess <existing-protocols-minus-http>
+        next
+    end
+    # Note: Replace <interface-name> and list only the protocols you want to keep
+    # (e.g., set allowaccess https ssh ping)
+  cisco_asa: |
+    # Cisco ASA CLI — disable the ASDM HTTP server
+    no http server enable
+    # Also remove per-host HTTP entries if present:
+    no http <ip> <mask> <interface>
+  paloalto: |
+    # PAN-OS CLI
+    set deviceconfig system service disable-http yes
+    commit
+  pfsense: |
+    # pfSense: System > Advanced > Admin Access > Protocol
+    # Select HTTPS only (GUI configuration)
+  watchguard: |
+    # WatchGuard: System > Administration
+    # Disable HTTP management (GUI configuration)

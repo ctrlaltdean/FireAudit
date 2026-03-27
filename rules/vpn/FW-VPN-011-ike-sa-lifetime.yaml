@@ -42,3 +42,20 @@ remediation: >
   'set keylife 86400' → end. A value of 28800 (8 hours) is recommended
   for high-security environments. Coordinate changes with remote VPN peers
   as both endpoints must agree on the lifetime value.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config vpn ipsec phase1-interface
+        edit <tunnel-name>
+            set keylifetime 86400
+        next
+    end
+    # Note: Unit is seconds; 86400 = 24 hours; replace <tunnel-name> with actual name
+  cisco_asa: |
+    # Cisco ASA CLI
+    crypto ikev1 policy 1
+      lifetime 86400
+    # Note: Apply to the relevant IKEv1 policy number
+  paloalto: |
+    # PAN-OS: IKE Crypto profiles > edit > IKE SA Lifetime (seconds)
+    # Set to 86400 or fewer (GUI: Network > Network Profiles > IKE Crypto)

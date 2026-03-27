@@ -47,6 +47,23 @@ def detect_vendor(content: str) -> str | None:
     ):
         return "fortigate"
 
+    # Check Point Gaia: clish 'set' format with Gaia-specific markers
+    # Must check before generic 'set hostname' patterns (e.g. FortiGate above is more specific)
+    if re.search(r"^set hostname\s+\S", head, re.MULTILINE) and re.search(
+        r"^set interface\s+\S", head, re.MULTILINE
+    ) and (
+        re.search(r"(set gaia-version|set edition|Gaia)", head)
+        or re.search(r"^add syslog log-remote-address", head, re.MULTILINE)
+    ) and "<" not in head[:512]:
+        return "checkpoint"
+
+    # Juniper SRX / JunOS hierarchical format
+    if re.search(r"^## Last changed:", head, re.MULTILINE) or (
+        re.search(r"^version\s+\d+\.\d+", head, re.MULTILINE)
+        and re.search(r"\bsystem\s*\{", head)
+    ):
+        return "juniper_srx"
+
     # Cisco ASA / FTD
     if re.search(r"^(ASA|ASDM|Cisco Adaptive Security)", head, re.MULTILINE):
         return "cisco_asa"

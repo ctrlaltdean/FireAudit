@@ -30,3 +30,22 @@ match:
 remediation: >
   Configure SSH to use version 2 only. FortiGate: 'config system global' →
   'set admin-ssh-v1 disable'. Verify no SSH v1 compatibility flags are set.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config system global
+        set ssh-v1 disable
+    end
+  cisco_asa: |
+    # Cisco ASA CLI
+    ssh version 2
+  paloalto: |
+    # PAN-OS: SSH v1 is disabled by default in PAN-OS 8.0+.
+    # Verify with: show system setting ssh
+    # No CLI change needed on modern PAN-OS versions.
+  pfsense: |
+    # pfSense: System > Advanced > Admin Access > SSHd
+    # Check "Only allow SSH Protocol 2" (GUI configuration)
+  watchguard: |
+    # WatchGuard: Fireware 12.x uses SSH v2 by default.
+    # Verify under System > Administration (GUI configuration)

@@ -51,3 +51,20 @@ remediation: >
   first and access the device only through the VPN tunnel. Alternatively,
   restrict access using trusted-hosts (FW-ADM-005) if WAN exposure cannot
   be avoided, but elimination is strongly preferred.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI — remove ssh from allowaccess on the WAN interface
+    config system interface
+        edit <wan-interface-name>
+            set allowaccess <existing-protocols-minus-ssh>
+        next
+    end
+    # Note: Ensure SSH is still enabled on management/LAN interface before
+    # removing from WAN (e.g., set allowaccess ping https)
+  cisco_asa: |
+    # Cisco ASA CLI — remove SSH access entries for the outside interface
+    no ssh <ip> <mask> <outside-interface>
+    # Note: Replace <ip>, <mask>, <outside-interface> with actual values
+  paloalto: |
+    # PAN-OS: Edit the management profile assigned to the WAN interface
+    # Remove SSH from allowed services (GUI: Network > Network Profiles > Interface Mgmt)

@@ -40,3 +40,25 @@ remediation: >
   FortiGate phase1-interface: 'set proposal aes256-sha256 aes128-sha256'.
   Phase2-interface: 'set proposal aes256-sha256 aes128-sha256'.
   Remove any DES, 3DES, or NULL cipher proposals.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config vpn ipsec phase1-interface
+        edit <tunnel-name>
+            set proposal aes256-sha256 aes256-sha512
+        next
+    end
+    # Note: Replace <tunnel-name> with the actual tunnel name; remove 3des/des entries
+  cisco_asa: |
+    # Cisco ASA CLI — replace weak IKEv1 policy with strong encryption
+    crypto ikev1 policy 1
+      encryption aes-256
+      authentication pre-share
+      group 14
+      hash sha
+      lifetime 28800
+    no crypto ikev1 policy <old-weak-policy-number>
+    # Note: Replace <old-weak-policy-number> with the policy number using weak encryption
+  paloalto: |
+    # PAN-OS: IKE Crypto profiles > edit the profile
+    # Remove DES/3DES from the encryption list (GUI: Network > Network Profiles > IKE Crypto)

@@ -29,6 +29,8 @@ class Finding:
     details: str = ""
     source_rule_file: str = ""
     manual_result: str = ""  # "confirmed_ok" | "needs_attention" | "" (not reviewed)
+    vendor_commands: dict = field(default_factory=dict)  # full dict keyed by vendor string
+    vendor_command: str = ""  # resolved command for the current device's vendor
 
     def to_dict(self) -> dict:
         from fireaudit.data.framework_urls import get_control_url
@@ -58,6 +60,8 @@ class Finding:
             "details": self.details,
             "source_rule_file": self.source_rule_file,
             "manual_result": self.manual_result,
+            "vendor_commands": self.vendor_commands,
+            "vendor_command": self.vendor_command,
         }
 
 
@@ -324,7 +328,7 @@ class RuleEvaluator:
         for rule in self.rules:
             if vendor and not self._vendor_matches(rule, vendor):
                 continue
-            finding = self._evaluate_rule(rule, ir)
+            finding = self._evaluate_rule(rule, ir, vendor=vendor)
             findings.append(finding)
         return findings
 
@@ -332,9 +336,17 @@ class RuleEvaluator:
         vendors = [v.lower() for v in rule.get("vendors", ["all"])]
         return "all" in vendors or vendor.lower() in vendors
 
-    def _evaluate_rule(self, rule: dict, ir: dict) -> Finding:
+    def _evaluate_rule(self, rule: dict, ir: dict, vendor: str | None = None) -> Finding:
         rule_id = rule["rule_id"]
         match_spec = rule["match"]
+
+        # Resolve vendor_commands dict and the specific command for this vendor
+        all_vendor_commands: dict = rule.get("vendor_commands", {})
+        resolved_vendor_command = ""
+        if vendor and all_vendor_commands:
+            # cisco_ftd uses cisco_asa commands
+            lookup_vendor = "cisco_asa" if vendor.lower() == "cisco_ftd" else vendor.lower()
+            resolved_vendor_command = all_vendor_commands.get(lookup_vendor, "")
 
         # Manual checks are never automated — always emit a manual_check finding
         if match_spec.get("type") == "manual":
@@ -348,6 +360,8 @@ class RuleEvaluator:
                 frameworks=rule.get("frameworks", {}),
                 details=match_spec.get("guidance", ""),
                 source_rule_file=rule.get("_source_file", ""),
+                vendor_commands=all_vendor_commands,
+                vendor_command=resolved_vendor_command,
             )
 
         # not_applicable_when: if the condition is met, skip the rule as not applicable
@@ -366,6 +380,8 @@ class RuleEvaluator:
                         frameworks=rule.get("frameworks", {}),
                         details=rule.get("not_applicable_reason", "Rule not applicable to this device/configuration."),
                         source_rule_file=rule.get("_source_file", ""),
+                        vendor_commands=all_vendor_commands,
+                        vendor_command=resolved_vendor_command,
                     )
             except Exception as exc:
                 log.debug("Rule %s not_applicable_when raised exception: %s", rule_id, exc)
@@ -384,6 +400,8 @@ class RuleEvaluator:
                 frameworks=rule.get("frameworks", {}),
                 details=f"Evaluation error: {exc}",
                 source_rule_file=rule.get("_source_file", ""),
+                vendor_commands=all_vendor_commands,
+                vendor_command=resolved_vendor_command,
             )
 
         return Finding(
@@ -398,6 +416,8 @@ class RuleEvaluator:
             affected_values=affected_values,
             details=details,
             source_rule_file=rule.get("_source_file", ""),
+            vendor_commands=all_vendor_commands,
+            vendor_command=resolved_vendor_command if not status else "",
         )
 
     def _apply_match(self, match: dict, ir: dict) -> tuple[bool, str, list[str], list[Any]]:

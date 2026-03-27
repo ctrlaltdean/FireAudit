@@ -47,3 +47,29 @@ remediation: >
   logging is enabled on the deny rule so that blocked traffic is recorded.
   FortiGate: Add a policy with action 'deny', srcaddr 'all', dstaddr 'all',
   schedule 'always', logtraffic 'all'. Place it after all permit rules.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config firewall policy
+        edit 0
+            set name "Explicit-Deny-All"
+            set srcintf "any"
+            set dstintf "any"
+            set srcaddr "all"
+            set dstaddr "all"
+            set action deny
+            set schedule "always"
+            set service "ALL"
+            set logtraffic all
+            set comments "Explicit deny-all — audit artifact"
+        next
+    end
+    # Note: Place this rule after all permit rules using the 'move' command if needed
+  cisco_asa: |
+    # Cisco ASA CLI — add explicit deny for logging visibility
+    # (ASA has an implicit deny; this adds an explicit logged deny)
+    access-list OUTSIDE_IN extended deny ip any any log
+    # Note: Replace OUTSIDE_IN with the actual ACL name applied to your outside interface
+  paloalto: |
+    # PAN-OS: Add a deny-all rule at the bottom in Policies > Security
+    # Use the GUI for correct rule ordering (GUI configuration)

@@ -286,3 +286,78 @@ def test_exists_where_passes_when_match_found():
     evaluator = RuleEvaluator([rule])
     results = evaluator.evaluate(ir_with_deny)
     assert results[0].status == "pass"
+
+
+# ---------------------------------------------------------------------------
+# vendor_commands / vendor_command tests
+# ---------------------------------------------------------------------------
+
+def test_vendor_command_populated_for_fortigate_fail(findings):
+    """FAIL findings for rules that have vendor_commands must expose the fortigate command."""
+    # FW-ADM-004 fails when timeout > 600s or null; sample_full.conf passes this rule.
+    # Use FW-AUTH-002 which always fails on the sample fixture (has 'admin' account).
+    f = next((f for f in findings if f.rule_id == "FW-AUTH-002"), None)
+    assert f is not None
+    assert f.status == "fail"
+    # FW-AUTH-002 doesn't have vendor_commands; vendor_command should be empty string
+    assert f.vendor_command == ""
+
+
+def test_vendor_command_populated_for_rule_with_commands(findings):
+    """A FAIL finding for a rule with vendor_commands should have vendor_command set."""
+    # FW-VPN-001 fails on the fixture (3des tunnel present) and has vendor_commands
+    f = next((f for f in findings if f.rule_id == "FW-VPN-001"), None)
+    assert f is not None
+    assert f.status == "fail"
+    # vendor_commands dict should contain fortigate key
+    assert "fortigate" in f.vendor_commands
+    # vendor_command (resolved for fortigate) should be non-empty
+    assert f.vendor_command.strip() != ""
+    assert "phase1-interface" in f.vendor_command
+
+
+def test_vendor_command_in_to_dict(findings):
+    """to_dict() must include vendor_commands and vendor_command keys."""
+    f = next((f for f in findings if f.rule_id == "FW-VPN-001"), None)
+    assert f is not None
+    d = f.to_dict()
+    assert "vendor_commands" in d
+    assert "vendor_command" in d
+    assert isinstance(d["vendor_commands"], dict)
+    assert isinstance(d["vendor_command"], str)
+
+
+def test_vendor_command_empty_for_pass_finding(findings):
+    """PASS findings must have an empty vendor_command (no remediation needed)."""
+    f = next((f for f in findings if f.rule_id == "FW-ADM-004"), None)
+    assert f is not None
+    assert f.status == "pass"
+    assert f.vendor_command == ""
+
+
+def test_cisco_ftd_uses_cisco_asa_commands():
+    """cisco_ftd vendor lookup should fall back to cisco_asa commands for FAIL findings."""
+    rule = {
+        "rule_id": "FW-ADM-004",
+        "name": "Test",
+        "severity": "medium",
+        "vendors": ["all"],
+        "frameworks": {},
+        "match": {
+            "type": "condition",
+            "path": "admin_access.session_timeout_seconds",
+            "condition": {"type": "is_not_null"},
+        },
+        "remediation": "Set timeout",
+        "description": "",
+        "vendor_commands": {
+            "cisco_asa": "ssh timeout 10\nconsole timeout 10",
+        },
+    }
+    # session_timeout_seconds is None → is_not_null fails → FAIL finding
+    ir = {"admin_access": {"session_timeout_seconds": None}}
+    evaluator = RuleEvaluator([rule])
+    results = evaluator.evaluate(ir, vendor="cisco_ftd")
+    assert results[0].status == "fail"
+    # Should use cisco_asa commands as fallback for cisco_ftd
+    assert results[0].vendor_command == "ssh timeout 10\nconsole timeout 10"

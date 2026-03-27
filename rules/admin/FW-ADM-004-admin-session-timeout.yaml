@@ -56,3 +56,32 @@ remediation: >
   pfSense/OPNsense: Navigate to System > Advanced > Admin Access and set the
   session timeout to 10 minutes. Note: this value is not stored in config.xml
   and cannot be verified via automated audit.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config system global
+        set admintimeout 10
+    end
+    # Unit is minutes; valid range 1-480
+  cisco_asa: |
+    # Cisco ASA CLI
+    ssh timeout 10
+    console timeout 10
+    # Unit is minutes
+  paloalto: |
+    # PAN-OS CLI
+    set deviceconfig system idle-timeout 10
+    commit
+    # Unit is minutes
+  pfsense: |
+    # pfSense: System > Advanced > Admin Access > Session Timeout
+    # Set to 10 minutes (GUI configuration — not stored in config.xml)
+  sonicwall: |
+    # SonicWall: Manage > Appliance > Administration > Web Management Settings
+    # Set Inactivity Timeout to 10 minutes (GUI configuration)
+  sophos_xg: |
+    # Sophos XG: Administration > Admin and user settings > Session timeout
+    # Set to 10 minutes (GUI configuration)
+  watchguard: |
+    # WatchGuard Firebox: System > Administration > Admin Session Timeout
+    # Set to 10 minutes (GUI configuration via Policy Manager or Web UI)

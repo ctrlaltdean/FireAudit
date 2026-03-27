@@ -4,7 +4,7 @@ Offline firewall configuration auditing tool with multi-vendor support and compl
 
 ## Features
 
-- **9 vendors supported**: FortiGate, Palo Alto, Cisco ASA/FTD, pfSense, OPNsense, SonicWall, Sophos XG, WatchGuard
+- **11 vendors supported**: FortiGate, Palo Alto, Cisco ASA/FTD, pfSense, OPNsense, SonicWall, Sophos XG, WatchGuard, Check Point Gaia, Juniper SRX
 - **61 audit rules** — 48 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
 - **4 compliance frameworks**: CIS, NIST 800-53, ISO 27001, CMMC/DFARS
 - **HTML and JSON report output** with per-framework compliance scores and a dedicated manual checks section
@@ -77,6 +77,25 @@ Outputs per device:
 | SonicWall | XML (settings export) | `sonicwall` |
 | Sophos XG | XML (backup file) | `sophos_xg` |
 | WatchGuard | XML (policy backup) | `watchguard` |
+| Check Point Gaia | Text (`show configuration` clish output) | `checkpoint` |
+| Juniper SRX | Text (JunOS hierarchical `show configuration`) | `juniper_srx` |
+
+### Vendor Auto-Detection
+
+When using `fireaudit bulk` (or `fireaudit audit` without `-v`), FireAudit sniffs the first 4 KB of each file to identify the vendor automatically:
+
+| Vendor | Detection Heuristic |
+|--------|---------------------|
+| FortiGate | `#config-version=FGT` header or `config system global` + `set hostname` |
+| Check Point Gaia | `set hostname` + `set interface` + Gaia marker (`set gaia-version`, `set edition`, or `add syslog log-remote-address`) in non-XML file |
+| Juniper SRX | `## Last changed:` comment header, or `version X.Y;` + `system {` block |
+| Cisco ASA/FTD | `ASA`, `ASDM`, or `Cisco Adaptive Security` at line start |
+| Palo Alto | `<config version=` + `<devices>` XML markers |
+| pfSense | `<pfsense` XML root element |
+| OPNsense | `<opnsense` XML root element |
+| SonicWall | `<SonicwallSettings>` or `<SonicWALL>` XML element |
+| Sophos XG | `<Configuration firmware_appliancekey=` or `<APPLIANCESettings>` |
+| WatchGuard | `<policy>` or `<profile>` XML root with `WatchGuard` or `<setup>` markers |
 
 ## Audit Rules
 

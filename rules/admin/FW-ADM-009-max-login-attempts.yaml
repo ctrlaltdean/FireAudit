@@ -39,3 +39,26 @@ remediation: >
   (5 or fewer recommended). FortiGate: 'config system global' →
   'set admin-lockout-threshold 5' → 'set admin-lockout-duration 300'.
   This locks out the source after 5 failures for 5 minutes.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config system global
+        set admin-lockout-threshold 3
+        set admin-lockout-duration 300
+    end
+    # lockout-duration is in seconds; 300 = 5 minutes
+  cisco_asa: |
+    # Cisco ASA CLI
+    aaa local authentication attempts max-fail 3
+  paloalto: |
+    # PAN-OS CLI
+    set deviceconfig system max-login-attempts 3
+    set deviceconfig system lockout-time 5
+    commit
+    # lockout-time is in minutes
+  pfsense: |
+    # pfSense: System > Advanced > Admin Access > Login Protection
+    # Enable and configure max attempts (GUI configuration)
+  watchguard: |
+    # WatchGuard: System > Administration > Failed Login Policy
+    # Configure max attempts and lockout duration (GUI configuration)

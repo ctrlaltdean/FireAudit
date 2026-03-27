@@ -46,3 +46,21 @@ remediation: >
   Configure HTTPS management to accept TLS 1.2 minimum, preferably TLS 1.3 only.
   FortiGate: 'config system global' → 'set admin-https-ssl-versions tlsv1-2 tlsv1-3'.
   Remove tlsv1-0 and tlsv1-1 from allowed versions.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config system global
+        set admin-https-ssl-versions tlsv1-2 tlsv1-3
+    end
+  cisco_asa: |
+    # Cisco ASA CLI (requires ASA 9.3(2)+ for TLS 1.2)
+    ssl server-version tlsv1.2
+    ssl client-version tlsv1.2
+  paloalto: |
+    # PAN-OS CLI — set minimum TLS version in the SSL/TLS service profile
+    set shared ssl-tls-service-profile <profile-name> min-version tls1-2
+    commit
+    # Note: Replace <profile-name> with the actual profile assigned to management
+  watchguard: |
+    # WatchGuard: System > Administration > Minimum TLS Version
+    # Set to TLS 1.2 (GUI configuration)

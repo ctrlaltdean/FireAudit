@@ -51,3 +51,20 @@ remediation: >
   and access the management GUI only through the VPN tunnel. Alternatively,
   restrict access using trusted-hosts (FW-ADM-005) if WAN exposure cannot
   be avoided, but elimination is strongly preferred.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI — remove https from allowaccess on the WAN interface
+    config system interface
+        edit <wan-interface-name>
+            set allowaccess <existing-protocols-minus-https>
+        next
+    end
+    # Note: List only the protocols you want to keep; removing https disables
+    # web UI on this interface (e.g., set allowaccess ping)
+  cisco_asa: |
+    # Cisco ASA CLI — remove HTTP management access from the outside interface
+    no http <mgmt-ip> <mask> <outside-interface>
+    # Note: Replace <mgmt-ip>, <mask>, <outside-interface> with actual values
+  paloalto: |
+    # PAN-OS: Edit the management profile assigned to the WAN interface
+    # Remove HTTPS from allowed services (GUI: Network > Network Profiles > Interface Mgmt)

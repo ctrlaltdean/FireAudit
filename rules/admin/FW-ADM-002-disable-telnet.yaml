@@ -35,3 +35,29 @@ match:
 remediation: >
   Disable Telnet on all management interfaces. Use SSH version 2 exclusively.
   FortiGate: 'config system global' → 'set admin-telnet disable'.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI — remove telnet from allowaccess on each affected interface
+    config system interface
+        edit <interface-name>
+            set allowaccess <existing-protocols-minus-telnet>
+        next
+    end
+    # Note: List only the protocols you want to keep (e.g., https ssh ping)
+  cisco_asa: |
+    # Cisco ASA CLI — remove telnet access entries
+    no telnet <ip> <mask> <interface>
+    # Note: Run this for each telnet entry shown in 'show running-config telnet'
+  paloalto: |
+    # PAN-OS CLI
+    set deviceconfig system service disable-telnet yes
+    commit
+  pfsense: |
+    # pfSense: Telnet is not enabled by default.
+    # If enabled via a package, remove the package via System > Package Manager.
+  sonicwall: |
+    # SonicWall: Manage > Appliance > Administration
+    # Uncheck Telnet Management (GUI configuration)
+  watchguard: |
+    # WatchGuard: Telnet management is disabled by default in modern Fireware.
+    # Verify under System > Administration (GUI configuration)

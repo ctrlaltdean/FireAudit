@@ -35,3 +35,33 @@ remediation: >
   Configure NTP with at least two time servers. FortiGate: 'config system ntp'
   → 'set status enable' → 'set type custom' → edit entries with server addresses.
   Use stratum 1 or 2 servers and prefer internal NTP infrastructure where available.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config system ntp
+        set ntpsync enable
+        set type custom
+        config ntpserver
+            edit 1
+                set server <ntp-server-ip-or-hostname>
+                set ntpv3 disable
+            next
+        end
+    end
+    # Note: Replace <ntp-server-ip-or-hostname> with your NTP server address
+  cisco_asa: |
+    # Cisco ASA CLI
+    ntp server <ip> source <interface>
+    ntp authenticate
+    # Note: Replace <ip> and <interface> with actual values
+  paloalto: |
+    # PAN-OS CLI
+    set deviceconfig system ntp-servers primary-ntp-server ntp-server-address <ip>
+    commit
+    # Note: Replace <ip> with your NTP server address
+  pfsense: |
+    # pfSense: Services > NTP
+    # Add NTP server (GUI configuration)
+  watchguard: |
+    # WatchGuard: System > NTP > Add Server
+    # Enter NTP server address (GUI configuration)

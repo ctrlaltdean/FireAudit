@@ -50,3 +50,28 @@ remediation: >
   FortiGate: Remove all 'config system snmp community' entries. Configure
   'config system snmp user' with security-level auth-priv, auth-proto SHA256,
   and priv-proto AES256. Restrict SNMP access to trusted management hosts.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI — delete each SNMPv1/v2c community entry
+    config system snmp community
+        delete 1
+    end
+    # Note: Repeat 'delete <id>' for each community; verify with: get system snmp community
+  cisco_asa: |
+    # Cisco ASA CLI
+    no snmp-server community <community-string>
+    no snmp-server enable traps
+    # Note: Replace <community-string> with your actual community string(s)
+  paloalto: |
+    # PAN-OS CLI
+    delete deviceconfig system snmp-setting
+    commit
+  pfsense: |
+    # pfSense: Services > SNMP
+    # Uncheck Enable (GUI configuration)
+  sonicwall: |
+    # SonicWall: Manage > Appliance > SNMP
+    # Disable SNMPv1/v2c (GUI configuration)
+  watchguard: |
+    # WatchGuard: System > SNMP
+    # Disable v1/v2c (GUI configuration)

@@ -49,3 +49,26 @@ remediation: >
   'set security-level auth-priv' → 'set auth-proto sha256' →
   'set priv-proto aes256'. Remove any users with auth-no-priv or
   no-auth-no-priv. Also remove all SNMPv1/v2c community entries.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config system snmp user
+        edit "snmpv3user"
+            set security-level auth-priv
+            set auth-proto sha256
+            set priv-proto aes256
+            set auth-pwd <auth-password>
+            set priv-pwd <priv-password>
+        next
+    end
+    # Note: Replace <auth-password> and <priv-password> with strong secrets
+  cisco_asa: |
+    # Cisco ASA CLI
+    snmp-server user <username> <group> v3 auth sha <auth-pass> priv aes 256 <priv-pass>
+    # Note: Replace <username>, <group>, <auth-pass>, <priv-pass> with actual values
+  paloalto: |
+    # PAN-OS: Configure fully in Device > Setup > Operations > SNMP Setup
+    # CLI path for view configuration:
+    set deviceconfig system snmp-setting access-setting version v3 views <view>
+    commit
+    # Note: Replace <view> with the actual SNMP view name

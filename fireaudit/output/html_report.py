@@ -72,6 +72,8 @@ _TEMPLATE = r"""<!DOCTYPE html>
   .badge.manual_check { background: #fefce8; color: #854d0e; }
   .manual-note { font-size: .8rem; background: #fefce8; border-left: 3px solid #ca8a04; padding: .5rem .75rem; margin-top: .5rem; color: #713f12; }
   .remediation { font-size: .8rem; background: #f8fafc; border-left: 3px solid #6366f1; padding: .5rem .75rem; margin-top: .5rem; color: #475569; }
+  .vendor-cmd { font-size: .8rem; background: #f0fdf4; border-left: 3px solid #16a34a; padding: .5rem .75rem; margin-top: .5rem; color: #166534; }
+  .vendor-cmd pre { margin-top: .25rem; font-family: monospace; white-space: pre-wrap; font-size: .75rem; }
   .affected { font-family: monospace; font-size: .75rem; color: #64748b; margin-top: .25rem; }
   details > summary { cursor: pointer; font-size: .8rem; color: #6366f1; margin-top: .25rem; }
   details[open] { margin-top: .5rem; }
@@ -256,6 +258,12 @@ _TEMPLATE = r"""<!DOCTYPE html>
             {% endif %}
             {% if f.status == "fail" and f.remediation %}
             <div class="remediation">{{ f.remediation }}</div>
+            {% endif %}
+            {% if f.status == "fail" and f.vendor_command %}
+            <div class="vendor-cmd">
+              <strong>CLI Fix ({{ report.device.vendor | upper }}):</strong>
+              <pre>{{ f.vendor_command }}</pre>
+            </div>
             {% endif %}
           </td>
         </tr>

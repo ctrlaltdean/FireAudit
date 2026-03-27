@@ -8,6 +8,8 @@ from fireaudit.parsers.cisco_asa import CiscoASAParser, CiscoFTDParser
 from fireaudit.parsers.sonicwall import SonicWallParser
 from fireaudit.parsers.sophos_xg import SophosXGParser
 from fireaudit.parsers.watchguard import WatchGuardParser
+from fireaudit.parsers.checkpoint import CheckPointParser
+from fireaudit.parsers.juniper_srx import JuniperSRXParser
 
 VENDOR_PARSERS = {
     "fortigate": FortiGateParser,
@@ -19,6 +21,8 @@ VENDOR_PARSERS = {
     "sonicwall": SonicWallParser,
     "sophos_xg": SophosXGParser,
     "watchguard": WatchGuardParser,
+    "checkpoint": CheckPointParser,
+    "juniper_srx": JuniperSRXParser,
 }
 
 

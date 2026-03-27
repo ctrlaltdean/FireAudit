@@ -42,3 +42,18 @@ remediation: >
   'set keylifeseconds 3600' → end. A value of 1800 (30 minutes) is
   recommended for high-security environments. Coordinate changes with
   remote VPN peers as both endpoints must agree on the lifetime value.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config vpn ipsec phase2-interface
+        edit <tunnel-name>
+            set keylifeseconds 3600
+        next
+    end
+    # Note: Unit is seconds; 3600 = 1 hour; replace <tunnel-name> with actual name
+  cisco_asa: |
+    # Cisco ASA CLI
+    crypto ipsec security-association lifetime seconds 3600
+  paloalto: |
+    # PAN-OS: IPSec Crypto profiles > edit > IPsec SA Lifetime (seconds)
+    # Set to 3600 or fewer (GUI: Network > Network Profiles > IPSec Crypto)

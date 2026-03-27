@@ -36,3 +36,20 @@ remediation: >
   Replace weak DH groups with group 14 or higher. Recommended: groups 19, 20,
   or 21 (ECDH). FortiGate: 'config vpn ipsec phase1-interface' → 'set dhgrp 14 19 20 21'.
   Also update phase2: 'config vpn ipsec phase2-interface' → 'set dhgrp 14 19 20 21'.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config vpn ipsec phase1-interface
+        edit <tunnel-name>
+            set dhgrp 14 19 20
+        next
+    end
+    # Note: Replace <tunnel-name> with the actual tunnel name; remove groups 1, 2, 5
+  cisco_asa: |
+    # Cisco ASA CLI
+    crypto ikev2 policy 1
+      group 14
+    # Note: Remove any policies specifying group 1, 2, or 5
+  paloalto: |
+    # PAN-OS: IKE Crypto profiles > edit > remove DH Group 1, 2, 5
+    # (GUI: Network > Network Profiles > IKE Crypto)

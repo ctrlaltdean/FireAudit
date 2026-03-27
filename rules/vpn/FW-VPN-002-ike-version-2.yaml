@@ -33,3 +33,24 @@ remediation: >
   Migrate all IPsec tunnels to IKEv2. FortiGate: In 'config vpn ipsec phase1-interface',
   set 'ike-version 2'. Coordinate with remote VPN peers as both endpoints must
   support IKEv2. Test thoroughly before production deployment.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config vpn ipsec phase1-interface
+        edit <tunnel-name>
+            set ike-version 2
+        next
+    end
+    # Note: Replace <tunnel-name> with the actual tunnel name; coordinate with remote peer
+  cisco_asa: |
+    # Cisco ASA CLI — configure IKEv2 policy
+    crypto ikev2 policy 1
+      encryption aes-256
+      integrity sha256
+      group 14
+      prf sha256
+      lifetime seconds 28800
+    # Note: Also configure IKEv2 proposal on the tunnel group and crypto map
+  paloalto: |
+    # PAN-OS: IKE Gateway > edit > IKE version > IKEv2
+    # (GUI: Network > Network Profiles > IKE Gateways)

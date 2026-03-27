@@ -36,3 +36,32 @@ remediation: >
   → 'set status enable' → 'set server <SIEM-IP>' → 'set port 514'
   → 'set mode reliable' (for TCP syslog). Consider using TLS syslog for
   log integrity in transit.
+vendor_commands:
+  fortigate: |
+    # FortiOS CLI
+    config log syslogd setting
+        set status enable
+        set server <syslog-server-ip>
+        set port 514
+        set facility local7
+        set format default
+    end
+    # Note: Replace <syslog-server-ip> with your actual syslog/SIEM server address
+  cisco_asa: |
+    # Cisco ASA CLI
+    logging enable
+    logging host <interface> <syslog-server-ip>
+    logging trap informational
+    logging on
+    # Note: Replace <interface> and <syslog-server-ip> with actual values
+  paloalto: |
+    # PAN-OS CLI
+    set shared log-settings syslog <profile-name> server <server-name> server <ip> transport UDP port 514
+    commit
+    # Note: Replace <profile-name>, <server-name>, and <ip> with actual values
+  pfsense: |
+    # pfSense: Status > System Logs > Settings > Remote Logging
+    # Enter syslog server IP and enable remote logging (GUI configuration)
+  watchguard: |
+    # WatchGuard: System > Logging > Log Servers > Add
+    # Enter syslog server address (GUI configuration)

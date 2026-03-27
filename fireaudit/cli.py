@@ -166,6 +166,7 @@ def update_apply(yes: bool) -> None:
 @click.option("--severity", "-s", default=None, type=click.Choice(["critical", "high", "medium", "low", "info"]), help="Minimum severity filter")
 @click.option("--ir-output", default=None, type=click.Path(), help="Also write the parsed IR to this JSON file")
 @click.option("--scrub", is_flag=True, default=False, help="Scrub potentially sensitive values from IR and findings output")
+@click.option("--show-commands", is_flag=True, default=False, help="After the findings table, print vendor CLI remediation commands for each FAIL finding")
 def audit(
     config: str,
     vendor: str,
@@ -176,6 +177,7 @@ def audit(
     severity: str | None,
     ir_output: str | None,
     scrub: bool,
+    show_commands: bool,
 ) -> None:
     """Parse a firewall config and audit it against the rule set."""
     config_path = Path(config)
@@ -228,6 +230,8 @@ def audit(
     # --- Print summary + findings table to console ---
     _print_summary(report)
     _print_findings_table(report)
+    if show_commands:
+        _print_vendor_commands(report, vendor)
 
     # --- Output ---
     if output:
@@ -768,6 +772,24 @@ def _print_findings_table(report: dict) -> None:
         )
 
     console.print(table)
+
+
+def _print_vendor_commands(report: dict, vendor: str) -> None:
+    """Print vendor CLI remediation commands for each FAIL finding."""
+    findings = report.get("findings", [])
+    fail_with_cmds = [
+        f for f in findings
+        if f.get("status") == "fail" and f.get("vendor_command", "").strip()
+    ]
+    if not fail_with_cmds:
+        return
+
+    console.print(f"\n[bold green]CLI Remediation Commands ({vendor.upper()})[/bold green]")
+    for f in fail_with_cmds:
+        console.print(f"\n[bold cyan]{f['rule_id']}[/bold cyan]  [dim]{f['name']}[/dim]")
+        console.print(f"  [green]CLI Fix ({vendor.upper()}):[/green]")
+        for line in f["vendor_command"].rstrip("\n").splitlines():
+            console.print(f"    {line}")
 
 
 def _posture_bar(score: int, width: int = 30) -> str:
