@@ -17,15 +17,17 @@ from rich.text import Text
 console = Console()
 
 _VENDOR_LABELS = {
-    "fortigate":  "FortiGate       (.conf backup)",
-    "paloalto":   "Palo Alto       (XML running config)",
-    "cisco_asa":  "Cisco ASA       (show run output)",
-    "cisco_ftd":  "Cisco FTD       (show run output)",
-    "pfsense":    "pfSense         (config.xml)",
-    "opnsense":   "OPNsense        (config.xml)",
-    "sonicwall":  "SonicWall       (XML settings export)",
-    "sophos_xg":  "Sophos XG/SFOS  (XML backup)",
-    "watchguard": "WatchGuard      (XML policy backup)",
+    "fortigate":    "FortiGate         (.conf backup)",
+    "paloalto":     "Palo Alto         (XML running config)",
+    "cisco_asa":    "Cisco ASA         (show run output)",
+    "cisco_ftd":    "Cisco FTD         (show run output)",
+    "pfsense":      "pfSense           (config.xml)",
+    "opnsense":     "OPNsense          (config.xml)",
+    "sonicwall":    "SonicWall         (XML settings export)",
+    "sophos_xg":    "Sophos XG/SFOS    (XML backup)",
+    "watchguard":   "WatchGuard        (XML policy backup)",
+    "checkpoint":   "Check Point Gaia  (show configuration)",
+    "juniper_srx":  "Juniper SRX       (show configuration)",
 }
 
 _FRAMEWORK_LABELS = {
@@ -156,6 +158,8 @@ def _wizard_questionary() -> dict:
         "Output format?",
         choices=[
             questionary.Choice("HTML report  (opens in browser)", value="html"),
+            questionary.Choice("PDF report   (printable / shareable)", value="pdf"),
+            questionary.Choice("Both HTML and PDF", value="both"),
             questionary.Choice("JSON         (machine-readable)", value="json"),
         ],
         style=custom_style,
@@ -165,7 +169,8 @@ def _wizard_questionary() -> dict:
 
     # 6. Output path
     default_stem = config_path.stem
-    default_out = str(Path.cwd() / f"{default_stem}_fireaudit.{fmt}")
+    ext = "html" if fmt in ("html", "both") else fmt
+    default_out = str(Path.cwd() / f"{default_stem}_fireaudit.{ext}")
     out_str = questionary.text(
         "Save report to:",
         default=default_out,
@@ -283,12 +288,30 @@ def _wizard_click() -> dict:
     severity = None if sev_key == "all" else sev_key
 
     # 5. Output format
-    fmt = click.prompt("Output format [html/json]", default="html").lower().strip()
-    if fmt not in ("html", "json"):
-        fmt = "html"
+    console.print("\n[bold]Output format:[/bold]")
+    fmt_keys = ["html", "pdf", "both", "json"]
+    fmt_labels = [
+        "HTML report  (opens in browser)",
+        "PDF report   (printable / shareable)",
+        "Both HTML and PDF",
+        "JSON         (machine-readable)",
+    ]
+    for i, label in enumerate(fmt_labels, 1):
+        console.print(f"  [cyan]{i}[/cyan]  {label}")
+    while True:
+        raw = click.prompt("Select format number", default="1")
+        try:
+            idx = int(raw) - 1
+            if 0 <= idx < len(fmt_keys):
+                fmt = fmt_keys[idx]
+                break
+        except (ValueError, IndexError):
+            pass
+        console.print("[red]Invalid selection.[/red]")
 
     # 6. Output path
-    default_out = str(Path.cwd() / f"{config_path.stem}_fireaudit.{fmt}")
+    ext = "html" if fmt in ("html", "both") else fmt
+    default_out = str(Path.cwd() / f"{config_path.stem}_fireaudit.{ext}")
     output = click.prompt("Save report to", default=default_out).strip()
 
     # 7. Scrub
@@ -366,6 +389,7 @@ def _run_audit(settings: dict) -> None:
     from fireaudit.engine.evaluator import RuleEvaluator, build_report
     from fireaudit.output.html_report import render_html
     from fireaudit.output.json_report import render_json
+    from fireaudit.output.pdf_report import render_pdf
     from fireaudit.cli import _print_summary, _print_findings_table, _scrub_ir
 
     config_path = Path(settings["config"])
@@ -432,12 +456,26 @@ def _run_audit(settings: dict) -> None:
     out_path = Path(output)
     if fmt == "json":
         render_json(report, output_path=out_path)
+        console.print(f"\n[green]Report written:[/green] {out_path.resolve()}")
+    elif fmt == "pdf":
+        render_pdf(report, output_path=out_path)
+        console.print(f"\n[green]Report written:[/green] {out_path.resolve()}")
+    elif fmt == "both":
+        stem = out_path.with_suffix("")
+        html_path = stem.with_suffix(".html")
+        pdf_path = stem.with_suffix(".pdf")
+        render_html(report, output_path=html_path)
+        render_pdf(report, output_path=pdf_path)
+        console.print(f"\n[green]Reports written:[/green]")
+        console.print(f"  HTML: {html_path.resolve()}")
+        console.print(f"  PDF:  {pdf_path.resolve()}")
+        out_path = html_path  # for browser-open prompt below
     else:
         render_html(report, output_path=out_path)
-    console.print(f"\n[green]Report written:[/green] {out_path.resolve()}")
+        console.print(f"\n[green]Report written:[/green] {out_path.resolve()}")
 
     # Offer to open HTML report
-    if fmt == "html":
+    if fmt in ("html", "both"):
         try:
             import click
             if click.confirm("\nOpen report in browser?", default=True):
@@ -470,7 +508,7 @@ def run_wizard() -> None:
             f"  [bold]Config:[/bold]          {settings['config']}",
             f"  [bold]Framework:[/bold]       {_FRAMEWORK_LABELS.get(settings['framework'] or 'all', settings['framework'])}",
             f"  [bold]Severity:[/bold]        {_SEVERITY_LABELS.get(settings['severity'] or 'all', settings['severity'])}",
-            f"  [bold]Output:[/bold]          {settings['output']} ({settings['fmt'].upper()})",
+            f"  [bold]Output:[/bold]          {settings['output']} ({settings['fmt'].upper() if settings['fmt'] != 'both' else 'HTML + PDF'})",
             f"  [bold]Scrub:[/bold]           {'Yes' if settings['scrub'] else 'No'}",
             f"  [bold]Manual checks:[/bold]   {'Walk through interactively' if settings.get('do_manual_checks') else 'Skip (included as unreviewed)'}",
         ]),
