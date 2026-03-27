@@ -29,6 +29,7 @@ from fireaudit.engine.loader import RuleLoader, RuleLoadError
 from fireaudit.engine.evaluator import RuleEvaluator, build_report
 from fireaudit.output.html_report import render_html
 from fireaudit.output.json_report import render_json
+from fireaudit.output.pdf_report import render_pdf
 from fireaudit.wizard import run_wizard
 from fireaudit.updater import (
     check_for_update,
@@ -156,13 +157,13 @@ def update_apply(yes: bool) -> None:
 @click.option("--config", "-c", required=True, type=click.Path(exists=True), help="Path to firewall config file")
 @click.option("--vendor", "-v", required=True, type=click.Choice(
     ["fortigate", "paloalto", "cisco_asa", "cisco_ftd", "pfsense", "opnsense",
-     "sonicwall", "sophos_xg", "watchguard"],
+     "sonicwall", "sophos_xg", "watchguard", "checkpoint", "juniper_srx"],
     case_sensitive=False,
 ), help="Firewall vendor")
 @click.option("--rules-dir", "-r", default=None, type=click.Path(), help="Custom rules directory (default: built-in rules/)")
 @click.option("--framework", "-f", default=None, help="Filter findings by framework (e.g. nist_800-53, cis, iso27001, cmmc)")
 @click.option("--output", "-o", default=None, type=click.Path(), help="Output file path (.json or .html). Prints to stdout if omitted.")
-@click.option("--format", "fmt", default="html", type=click.Choice(["json", "html"]), show_default=True, help="Output format")
+@click.option("--format", "fmt", default="html", type=click.Choice(["json", "html", "pdf", "both"]), show_default=True, help="Output format")
 @click.option("--severity", "-s", default=None, type=click.Choice(["critical", "high", "medium", "low", "info"]), help="Minimum severity filter")
 @click.option("--ir-output", default=None, type=click.Path(), help="Also write the parsed IR to this JSON file")
 @click.option("--scrub", is_flag=True, default=False, help="Scrub potentially sensitive values from IR and findings output")
@@ -241,15 +242,29 @@ def audit(
             actual_fmt = "json"
         elif out_path.suffix in (".html", ".htm"):
             actual_fmt = "html"
+        elif out_path.suffix == ".pdf":
+            actual_fmt = "pdf"
 
         if actual_fmt == "json":
             render_json(report, output_path=out_path)
+        elif actual_fmt == "pdf":
+            render_pdf(report, output_path=out_path)
+        elif actual_fmt == "both":
+            # Write both HTML and PDF; base name from output path
+            stem = out_path.with_suffix("")
+            render_html(report, output_path=stem.with_suffix(".html"))
+            render_pdf(report, output_path=stem.with_suffix(".pdf"))
+            console.print(f"[green]Reports written:[/green] {stem.with_suffix('.html').resolve()}, {stem.with_suffix('.pdf').resolve()}")
         else:
             render_html(report, output_path=out_path)
-        console.print(f"[green]Report written:[/green] {out_path.resolve()}")
+        if actual_fmt != "both":
+            console.print(f"[green]Report written:[/green] {out_path.resolve()}")
     else:
         if fmt == "json":
             click.echo(render_json(report))
+        elif fmt == "pdf":
+            import sys as _sys
+            _sys.stdout.buffer.write(render_pdf(report))
         else:
             click.echo(render_html(report))
 
@@ -331,7 +346,7 @@ def _audit_one(
 @main.command("bulk")
 @click.argument("path", type=click.Path())
 @click.option("--output-dir", "-o", default="fireaudit-reports", show_default=True, type=click.Path(), help="Directory to write reports into")
-@click.option("--format", "fmt", default="html", type=click.Choice(["html", "json", "both"]), show_default=True, help="Report format per device")
+@click.option("--format", "fmt", default="html", type=click.Choice(["html", "json", "pdf", "both"]), show_default=True, help="Report format per device")
 @click.option("--vendor", "-v", default=None, type=click.Choice(list(VENDOR_PARSERS), case_sensitive=False), help="Force vendor for all files (skips auto-detect)")
 @click.option("--rules-dir", "-r", default=None, type=click.Path(), help="Custom rules directory")
 @click.option("--workers", default=4, show_default=True, type=int, help="Parallel worker threads")
@@ -381,6 +396,11 @@ def bulk(path: str, output_dir: str, fmt: str, vendor: str | None, rules_dir: st
                     out_path = out_dir / f"{stem}.json"
                     render_json(res["report"], output_path=out_path)
                     if fmt == "json":
+                        res["report_file"] = str(out_path.name)
+                if fmt in ("pdf", "both"):
+                    out_path = out_dir / f"{stem}.pdf"
+                    render_pdf(res["report"], output_path=out_path)
+                    if fmt == "pdf":
                         res["report_file"] = str(out_path.name)
             return res
 
@@ -575,7 +595,7 @@ def _write_fleet_html(results: list[dict], fleet_json: dict, out_path: Path) -> 
 @click.option("--config", "-c", required=True, type=click.Path(exists=True))
 @click.option("--vendor", "-v", required=True, type=click.Choice(
     ["fortigate", "paloalto", "cisco_asa", "cisco_ftd", "pfsense", "opnsense",
-     "sonicwall", "sophos_xg", "watchguard"],
+     "sonicwall", "sophos_xg", "watchguard", "checkpoint", "juniper_srx"],
     case_sensitive=False,
 ))
 @click.option("--output", "-o", default=None, type=click.Path())
