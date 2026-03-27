@@ -21,7 +21,7 @@ frameworks:
   CMMC:
     - "AU.L2-3.3.1: Create and retain audit logs"
   DISA_STIG:
-    - "SRG-NET-000334: The firewall must generate audit records for traffic matching allow rules"
+    - "SRG-NET-000158: The network device must generate log records for security-relevant events"
 match:
   type: not_exists_where
   path: firewall_policies

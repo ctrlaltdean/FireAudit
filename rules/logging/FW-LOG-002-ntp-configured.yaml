@@ -19,7 +19,7 @@ frameworks:
   CMMC:
     - "AU.L2-3.3.7: Provide system capability to compare/synchronize clocks"
   DISA_STIG:
-    - "SRG-NET-000255: The network device must synchronize internal clocks using an authoritative NTP server"
+    - "SRG-NET-000531: The network device must use NTP for time synchronization"
 match:
   type: all_of
   checks:

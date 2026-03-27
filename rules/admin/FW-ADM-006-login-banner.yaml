@@ -8,14 +8,18 @@ severity: low
 vendors:
   - all
 frameworks:
+  CIS:
+    - "CIS FW Benchmark 1.8: Configure a warning login banner"
   NIST_800-53:
     - "AC-8: System Use Notification"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
   ISO27001:
     - "A.9.4.2: Secure log-on procedures"
   CMMC:
     - "AC.L2-3.1.9: Provide security awareness training"
   DISA_STIG:
-    - "SRG-NET-000062: The network device must display a DOD-approved warning banner before granting access"
+    - "SRG-NET-000268: The network device must display a login banner"
 match:
   type: condition
   path: admin_access.banner_enabled

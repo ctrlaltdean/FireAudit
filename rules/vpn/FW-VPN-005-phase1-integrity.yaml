@@ -14,13 +14,15 @@ frameworks:
   NIST_800-53:
     - "SC-8: Transmission Confidentiality and Integrity"
     - "SC-13: Cryptographic Protection"
+  NIST_CSF:
+    - "PR.DS-2: Data-in-transit is protected"
   ISO27001:
     - "A.10.1.1: Policy on the use of cryptographic controls"
   CMMC:
     - "SC.L2-3.13.8: Implement cryptographic mechanisms to prevent unauthorized disclosure"
     - "SC.L2-3.13.10: Employ FIPS-validated cryptography"
   DISA_STIG:
-    - "SRG-NET-000280: The VPN gateway must use FIPS-approved integrity algorithms for IPsec Phase 1"
+    - "SRG-NET-000380: The network device must use FIPS-validated cryptography for VPN"
 match:
   type: not_exists_where
   path: vpn.ipsec_tunnels

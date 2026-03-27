@@ -1,0 +1,53 @@
+rule_id: FW-POL-010
+name: Allow Rules Must Not Permit All Services (service=any)
+description: >
+  Firewall allow rules should specify explicit services and ports rather than
+  permitting all traffic. A rule with service "any" combined with an allow
+  action permits all protocols and ports, violating the principle of least
+  privilege and exposing destination systems to unrestricted access from the
+  source. Each rule should permit only the specific services required for
+  the documented business purpose.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 3.3: Avoid any-service allow rules"
+  NIST_800-53:
+    - "AC-3: Access Enforcement"
+    - "CM-7: Least Functionality"
+  NIST_CSF:
+    - "PR.AC-5: Network integrity is protected"
+    - "PR.PT-3: Principle of least functionality is incorporated"
+  ISO27001:
+    - "A.9.1.2: Access to networks and network services"
+    - "A.13.1.3: Segregation in networks"
+  CMMC:
+    - "AC.L1-3.1.2: Limit access to types of transactions"
+    - "CM.L2-3.4.6: Employ principle of least functionality"
+  DISA_STIG:
+    - "SRG-NET-000236: The network device must deny traffic by default"
+match:
+  type: not_exists_where
+  path: firewall_policies
+  where:
+    enabled:
+      type: is_true
+    action:
+      type: eq
+      value: allow
+    services:
+      type: intersects
+      values:
+        - any
+        - Any
+        - ANY
+        - ALL
+        - all
+remediation: >
+  Replace service=any on allow rules with explicit service objects that define
+  the specific protocols and ports required. FortiGate: In 'config firewall policy',
+  change 'set service ALL' to specific services such as 'set service HTTP HTTPS'.
+  Create custom service objects under 'config firewall service custom' for
+  non-standard ports. Review all policies with service set to 'ALL' and restrict
+  them to the minimum required services.

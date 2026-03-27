@@ -7,14 +7,18 @@ severity: high
 vendors:
   - all
 frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.3: Enforce TLS 1.2 or higher for SSL VPN"
   NIST_800-53:
     - "SC-8: Transmission Confidentiality and Integrity"
+  NIST_CSF:
+    - "PR.DS-2: Data-in-transit is protected"
   ISO27001:
     - "A.10.1.1: Policy on the use of cryptographic controls"
   CMMC:
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
   DISA_STIG:
-    - "SRG-NET-000339: The SSL VPN must use TLS 1.2 or higher and reject connections using TLS 1.0 or 1.1"
+    - "SRG-NET-000077: The network device must use FIPS-validated cryptography for remote management"
 match:
   type: any_of
   checks:

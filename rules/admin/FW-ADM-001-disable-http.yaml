@@ -20,7 +20,7 @@ frameworks:
   CMMC:
     - "AC.L1-3.1.13: Employ cryptographic mechanisms to protect CUI"
   DISA_STIG:
-    - "SRG-NET-000019: The network device must not use unencrypted protocols for management access"
+    - "SRG-NET-000138: The network device must control remote access methods"
 match:
   type: foreach
   path: admin_access.management_protocols

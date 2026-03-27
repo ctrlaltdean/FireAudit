@@ -12,12 +12,15 @@ frameworks:
   NIST_800-53:
     - "SC-8: Transmission Confidentiality and Integrity"
     - "CM-7: Least Functionality"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
+    - "PR.DS-2: Data-in-transit is protected"
   ISO27001:
     - "A.14.1.3: Protecting application services transactions"
   CMMC:
     - "AC.L2-3.1.13: Employ cryptographic mechanisms"
   DISA_STIG:
-    - "SRG-NET-000026: The network device must use FIPS-validated cryptography for SSH sessions"
+    - "SRG-NET-000572: The network device must implement SSH using FIPS-validated algorithms"
 match:
   type: condition
   path: admin_access.ssh_settings.version

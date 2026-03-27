@@ -12,7 +12,7 @@ vendors:
   - all
 frameworks:
   DISA_STIG:
-    - "SRG-NET-000230: The VPN gateway must renegotiate IPsec security associations after a defined period"
+    - "SRG-NET-000380: The network device must use FIPS-validated cryptography for VPN"
   CIS:
     - "CIS FW Benchmark 4.3: Configure appropriate SA lifetime for IPsec Phase 2"
   NIST_800-53:

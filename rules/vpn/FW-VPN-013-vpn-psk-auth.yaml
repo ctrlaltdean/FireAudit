@@ -1,0 +1,45 @@
+rule_id: FW-VPN-013
+name: IPsec VPN Must Use Certificate Authentication Instead of Pre-Shared Keys
+description: >
+  IPsec site-to-site VPN tunnels should use certificate-based authentication
+  rather than pre-shared keys (PSK). PSK authentication is susceptible to
+  brute-force attacks, offline dictionary attacks (especially when combined with
+  IKEv1 aggressive mode), and key compromise through insider threats or leaked
+  configuration files. Certificate-based authentication provides stronger identity
+  assurance, eliminates shared secrets, and supports certificate revocation.
+severity: medium
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.6: Use certificate authentication for VPN"
+  NIST_800-53:
+    - "IA-3: Device Identification and Authentication"
+    - "SC-8: Transmission Confidentiality and Integrity"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
+    - "PR.AC-6: Identities are proofed and bound to credentials"
+  ISO27001:
+    - "A.10.1.1: Policy on the use of cryptographic controls"
+    - "A.9.4.2: Secure log-on procedures"
+  CMMC:
+    - "IA.L2-3.5.3: Use multi-factor authentication for local and network access"
+    - "SC.L2-3.13.8: Implement cryptographic mechanisms"
+  DISA_STIG:
+    - "SRG-NET-000344: The network device must authenticate devices before establishing connections"
+match:
+  type: not_exists_where
+  path: vpn.ipsec_tunnels
+  where:
+    enabled:
+      type: is_true
+    auth_method:
+      type: eq
+      value: psk
+remediation: >
+  Migrate IPsec VPN tunnels from PSK to certificate-based authentication.
+  FortiGate: In 'config vpn ipsec phase1-interface', set 'set authmethod rsa-signature'
+  and configure a local certificate and CA certificate for peer verification.
+  Enroll device certificates from your PKI infrastructure and configure a
+  peer ID or subject name for identity verification. Coordinate with VPN
+  peer administrators as both endpoints must support certificate authentication.

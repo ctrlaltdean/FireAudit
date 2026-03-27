@@ -20,7 +20,7 @@ frameworks:
   CMMC:
     - "AC.L2-3.1.10: Use session lock after period of inactivity"
   DISA_STIG:
-    - "SRG-NET-000045: The network device must terminate idle management sessions after no more than 10 minutes"
+    - "SRG-NET-000062: The network device must terminate management sessions after inactivity"
 match:
   type: all_of
   checks:

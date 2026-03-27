@@ -15,6 +15,9 @@ frameworks:
     - "AU-2: Event Logging"
     - "CM-3: Configuration Change Control"
     - "AU-12: Audit Record Generation"
+  NIST_CSF:
+    - "DE.CM-1: Network is monitored to detect potential cybersecurity events"
+    - "PR.PT-1: Audit/log records determined and documented"
   ISO27001:
     - "A.12.4.1: Event logging"
     - "A.12.1.2: Change management"
@@ -22,7 +25,7 @@ frameworks:
     - "AU.L2-3.3.1: Create and retain audit logs"
     - "CM.L2-3.4.3: Track, review, approve, and log changes"
   DISA_STIG:
-    - "SRG-NET-000089: The network device must generate audit records for all configuration changes"
+    - "SRG-NET-000513: The network device must generate audit records when firewall rules are modified"
 match:
   type: condition
   path: logging.log_admin_actions

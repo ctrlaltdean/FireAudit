@@ -16,12 +16,15 @@ frameworks:
   NIST_800-53:
     - "SC-7: Boundary Protection"
     - "SI-4: System Monitoring"
+  NIST_CSF:
+    - "PR.AC-5: Network integrity is protected"
+    - "DE.CM-1: Network is monitored to detect potential cybersecurity events"
   ISO27001:
     - "A.13.1.1: Network controls"
   CMMC:
     - "SC.L1-3.13.1: Monitor, control, and protect communications"
   DISA_STIG:
-    - "SRG-NET-000230: The network device must implement anti-spoofing mechanisms on WAN interfaces"
+    - "SRG-NET-000131: The network device must protect against DoS by limiting scope of connections"
 match:
   type: manual
   guidance: >

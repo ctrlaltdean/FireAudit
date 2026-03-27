@@ -14,6 +14,8 @@ frameworks:
   NIST_800-53:
     - "CM-6: Configuration Settings"
     - "CM-7: Least Functionality"
+  NIST_CSF:
+    - "PR.IP-1: Baseline configuration of information technology/industrial control systems maintained"
   ISO27001:
     - "A.12.1.1: Documented operating procedures"
   CMMC:

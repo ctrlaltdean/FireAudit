@@ -21,7 +21,7 @@ frameworks:
   CMMC:
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
   DISA_STIG:
-    - "SRG-NET-000339: The network device must use FIPS-validated cryptography for HTTPS management sessions"
+    - "SRG-NET-000077: The network device must use FIPS-validated cryptography for remote management"
 match:
   type: any_of
   checks:

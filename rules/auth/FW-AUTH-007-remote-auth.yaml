@@ -15,13 +15,16 @@ frameworks:
     - "IA-2: Identification and Authentication"
     - "AC-2: Account Management"
     - "AU-3: Content of Audit Records"
+  NIST_CSF:
+    - "PR.AC-1: Identities and credentials are managed"
+    - "PR.AC-6: Identities are proofed and bound to credentials"
   ISO27001:
     - "A.9.2.3: Management of privileged access rights"
     - "A.9.4.2: Secure log-on procedures"
   CMMC:
     - "IA.L2-3.5.2: Authenticate organizational users"
   DISA_STIG:
-    - "SRG-NET-000193: The network device must use an authentication server to authenticate administrators"
+    - "SRG-NET-000344: The network device must authenticate devices before establishing connections"
 match:
   type: any_of
   checks:

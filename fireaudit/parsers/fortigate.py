@@ -286,11 +286,23 @@ class FortiGateParser(BaseParser):
         aa["snmp"]["enabled"] = bool(snmp_enabled)
 
         communities = []
+        allowed_hosts: list[str] = []
         for _entry_id, entry in snmp_community_block.entries.items():
             name = _get(entry, "name")
             if name:
                 communities.append(str(name))
+            # Extract allowed hosts from nested 'config hosts' sub-block
+            hosts_block = entry.children.get("hosts", _FGBlock())
+            for _hid, host_entry in hosts_block.entries.items():
+                ip_val = _get(host_entry, "ip")
+                if ip_val:
+                    if isinstance(ip_val, list):
+                        # "set ip 10.0.0.0 255.255.255.0" → two tokens
+                        allowed_hosts.append("/".join(str(v) for v in ip_val))
+                    else:
+                        allowed_hosts.append(str(ip_val))
         aa["snmp"]["community_strings"] = communities
+        aa["snmp"]["allowed_hosts"] = list(set(allowed_hosts))
 
         # SNMPv3 security level: check if any v3 user is configured and what level it uses
         # FortiGate: 'config system snmp user' → 'set security-level auth-priv|auth-no-priv|no-auth-no-priv'

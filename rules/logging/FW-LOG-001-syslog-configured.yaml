@@ -24,7 +24,7 @@ frameworks:
     - "AU.L2-3.3.1: Create and retain audit logs"
     - "AU.L2-3.3.2: Ensure audit log review and reporting"
   DISA_STIG:
-    - "SRG-NET-000333: The network device must send log data to a central log server"
+    - "SRG-NET-000532: The network device must configure logging to a remote log server"
 match:
   type: condition
   path: logging.syslog_servers

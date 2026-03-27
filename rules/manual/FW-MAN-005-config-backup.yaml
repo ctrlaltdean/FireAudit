@@ -15,13 +15,16 @@ frameworks:
     - "CP-9: System Backup"
     - "CP-10: System Recovery and Reconstitution"
     - "CM-3: Configuration Change Control"
+  NIST_CSF:
+    - "PR.IP-4: Backups of information are conducted, maintained, and tested"
+    - "RC.RP-1: Recovery plan executed during or after a cybersecurity incident"
   ISO27001:
     - "A.12.3.1: Information backup"
     - "A.17.1.2: Implementing information security continuity"
   CMMC:
     - "CP.L2-3.8.9: Protect backup CUI at storage locations"
   DISA_STIG:
-    - "SRG-NET-000070: The network device must have its configuration backed up and tested regularly"
+    - "SRG-NET-000213: The network device must enforce access restrictions for changes"
 match:
   type: manual
   guidance: >

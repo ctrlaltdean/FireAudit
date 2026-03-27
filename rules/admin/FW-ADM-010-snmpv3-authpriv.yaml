@@ -15,6 +15,9 @@ frameworks:
   NIST_800-53:
     - "SC-8: Transmission Confidentiality and Integrity"
     - "IA-3: Device Identification and Authentication"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
+    - "PR.DS-2: Data-in-transit is protected"
   ISO27001:
     - "A.10.1.1: Policy on the use of cryptographic controls"
     - "A.13.1.1: Network controls"
@@ -22,7 +25,8 @@ frameworks:
     - "AC.L1-3.1.13: Employ cryptographic mechanisms to protect CUI"
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
   DISA_STIG:
-    - "SRG-NET-000131: The network device must use SNMPv3 with authentication and privacy (authPriv)"
+    - "SRG-NET-000168: The network device must use SNMPv3 with authentication and privacy"
+    - "SRG-NET-000169: The network device must authenticate SNMP with SHA or better"
 match:
   type: any_of
   checks:

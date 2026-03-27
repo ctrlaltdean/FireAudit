@@ -8,14 +8,18 @@ severity: high
 vendors:
   - all
 frameworks:
+  CIS:
+    - "CIS FW Benchmark 4.1: Use strong Diffie-Hellman groups for key exchange"
   NIST_800-53:
     - "SC-8: Transmission Confidentiality and Integrity"
+  NIST_CSF:
+    - "PR.DS-2: Data-in-transit is protected"
   ISO27001:
     - "A.10.1.1: Policy on the use of cryptographic controls"
   CMMC:
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
   DISA_STIG:
-    - "SRG-NET-000280: The VPN gateway must use Diffie-Hellman groups of 14 or higher for key exchange"
+    - "SRG-NET-000015: The network device must use approved cryptographic mechanisms"
 match:
   type: not_exists_where
   path: vpn.ipsec_tunnels

@@ -14,6 +14,9 @@ frameworks:
   NIST_800-53:
     - "AU-9: Protection of Audit Information"
     - "SC-8: Transmission Confidentiality and Integrity"
+  NIST_CSF:
+    - "PR.DS-2: Data-in-transit is protected"
+    - "PR.PT-1: Audit/log records determined and documented"
   ISO27001:
     - "A.12.4.2: Protection of log information"
     - "A.10.1.1: Policy on the use of cryptographic controls"
@@ -21,7 +24,7 @@ frameworks:
     - "AU.L2-3.3.1: Create and retain audit logs"
     - "SC.L2-3.13.8: Implement cryptographic mechanisms"
   DISA_STIG:
-    - "SRG-NET-000333: The network device must use encryption when transmitting log data to remote servers"
+    - "SRG-NET-000519: The network device must protect audit records from unauthorized access"
 match:
   type: condition
   path: logging.syslog_servers

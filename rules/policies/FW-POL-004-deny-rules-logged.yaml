@@ -16,12 +16,15 @@ frameworks:
     - "AU-2: Event Logging"
     - "AU-12: Audit Record Generation"
     - "SI-4: System Monitoring"
+  NIST_CSF:
+    - "DE.CM-1: Network is monitored to detect potential cybersecurity events"
+    - "PR.PT-1: Audit/log records determined and documented"
   ISO27001:
     - "A.12.4.1: Event logging"
   CMMC:
     - "AU.L2-3.3.1: Create and retain audit logs"
   DISA_STIG:
-    - "SRG-NET-000334: The firewall must generate audit records for traffic matching deny rules"
+    - "SRG-NET-000512: The network device must log denied traffic"
 match:
   type: foreach
   path: firewall_policies

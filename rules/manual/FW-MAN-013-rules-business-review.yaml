@@ -18,6 +18,9 @@ frameworks:
     - "AC-6: Least Privilege"
     - "CA-7: Continuous Monitoring"
     - "CM-3: Configuration Change Control"
+  NIST_CSF:
+    - "PR.IP-1: Baseline configuration of information technology/industrial control systems maintained"
+    - "ID.GV-1: Organizational cybersecurity policy established"
   ISO27001:
     - "A.9.1.2: Access to networks and network services"
     - "A.12.1.2: Change management"

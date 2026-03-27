@@ -13,12 +13,14 @@ frameworks:
     - "CIS FW Benchmark 1.5: Configure account lockout"
   NIST_800-53:
     - "AC-7: Unsuccessful Logon Attempts"
+  NIST_CSF:
+    - "PR.AC-1: Identities and credentials are managed"
   ISO27001:
     - "A.9.4.2: Secure log-on procedures"
   CMMC:
     - "AC.L2-3.1.8: Limit unsuccessful logon attempts"
   DISA_STIG:
-    - "SRG-NET-000205: The network device must enforce an account lockout after failed authentication attempts"
+    - "SRG-NET-000041: The network device must enforce a limit of consecutive invalid logon attempts"
 match:
   type: all_of
   checks:

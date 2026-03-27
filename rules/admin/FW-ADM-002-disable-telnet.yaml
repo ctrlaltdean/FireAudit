@@ -19,7 +19,7 @@ frameworks:
   CMMC:
     - "AC.L1-3.1.13: Employ cryptographic mechanisms"
   DISA_STIG:
-    - "SRG-NET-000023: The network device must terminate all unencrypted remote management connections"
+    - "SRG-NET-000138: The network device must control remote access methods"
 match:
   type: foreach
   path: admin_access.management_protocols

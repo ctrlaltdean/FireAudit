@@ -16,12 +16,14 @@ frameworks:
   NIST_800-53:
     - "AC-2: Account Management"
     - "IA-5: Authenticator Management"
+  NIST_CSF:
+    - "PR.AC-1: Identities and credentials are managed"
   ISO27001:
     - "A.9.2.3: Management of privileged access rights"
   CMMC:
     - "AC.L1-3.1.1: Limit system access to authorized users"
   DISA_STIG:
-    - "SRG-NET-000166: The network device must prohibit the use of default or shared accounts"
+    - "SRG-NET-000213: The network device must enforce access restrictions for changes"
 match:
   type: condition
   path: authentication.default_admin_account_exists

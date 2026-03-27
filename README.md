@@ -5,7 +5,7 @@ Offline firewall configuration auditing tool with multi-vendor support and compl
 ## Features
 
 - **9 vendors supported**: FortiGate, Palo Alto, Cisco ASA/FTD, pfSense, OPNsense, SonicWall, Sophos XG, WatchGuard
-- **42 audit rules** — 29 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
+- **61 audit rules** — 48 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
 - **4 compliance frameworks**: CIS, NIST 800-53, ISO 27001, CMMC/DFARS
 - **HTML and JSON report output** with per-framework compliance scores and a dedicated manual checks section
 - **Interactive wizard mode** — no CLI flags required
@@ -59,7 +59,7 @@ fireaudit parse -c firewall.conf -v fortigate -o ir.json
 
 Each rule describes a **required** security configuration. Severity indicates how critical the finding is when a rule **fails** (i.e. when the requirement is not met).
 
-### Automated Checks (29 rules)
+### Automated Checks (48 rules)
 
 #### Administration
 | Rule ID | Requirement | Severity if Failed |
@@ -76,6 +76,8 @@ Each rule describes a **required** security configuration. Severity indicates ho
 | FW-ADM-010 | SNMPv3 must use authPriv security level | High |
 | FW-ADM-011 | HTTPS management must not be exposed on WAN interfaces | Critical |
 | FW-ADM-012 | SSH management must not be exposed on WAN interfaces | Critical |
+| FW-ADM-013 | SNMP must be restricted to authorized management hosts | High |
+| FW-ADM-014 | SSH must not use weak ciphers or MACs | Medium |
 
 #### Authentication
 | Rule ID | Requirement | Severity if Failed |
@@ -108,6 +110,7 @@ Each rule describes a **required** security configuration. Severity indicates ho
 | FW-POL-003 | An explicit deny rule must exist in the policy | Critical |
 | FW-POL-004 | Deny rules must have logging enabled | Medium |
 | FW-POL-005 | All allow rules must have a descriptive comment | Low |
+| FW-POL-010 | Allow rules must not permit all services (service=any) | High |
 
 #### VPN
 | Rule ID | Requirement | Severity if Failed |
@@ -124,6 +127,7 @@ Each rule describes a **required** security configuration. Severity indicates ho
 | FW-VPN-010 | SSL VPN split tunneling must be disabled or restricted | Medium |
 | FW-VPN-011 | IPsec Phase 1 (IKE SA) lifetime must not exceed 86400 seconds | Medium |
 | FW-VPN-012 | IPsec Phase 2 (IPsec SA) lifetime must not exceed 3600 seconds | Medium |
+| FW-VPN-013 | IPsec VPN must use certificate authentication instead of pre-shared keys | Medium |
 
 ### Manual Verification Checklist (13 items)
 
@@ -150,6 +154,8 @@ The following checks require human review and cannot be determined from static c
 Rules are mapped to controls in:
 - **CIS Benchmarks** (firewall hardening)
 - **NIST SP 800-53** (AC, AU, CM, IA, SC controls)
+- **NIST CSF** (PR.AC, PR.DS, DE.CM subcategories)
+- **DISA Network Infrastructure SRG** (SRG-NET-XXXXXX requirement IDs)
 - **ISO 27001:2022** (A.8.x controls)
 - **CMMC 2.0 / DFARS** (AC, AU, CM, IA, SC domains)
 

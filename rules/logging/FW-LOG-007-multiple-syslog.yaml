@@ -14,11 +14,14 @@ frameworks:
   NIST_800-53:
     - "AU-9: Protection of Audit Information"
     - "CP-9: System Backup"
+  NIST_CSF:
+    - "PR.PT-1: Audit/log records determined and documented"
+    - "DE.AE-1: Baseline of network operations established"
   ISO27001:
     - "A.12.4.2: Protection of log information"
     - "A.17.2.1: Availability of information processing facilities"
   DISA_STIG:
-    - "SRG-NET-000333: The network device must use redundant log servers for availability"
+    - "SRG-NET-000532: The network device must configure logging to a remote log server"
 match:
   type: condition
   path: logging.syslog_servers

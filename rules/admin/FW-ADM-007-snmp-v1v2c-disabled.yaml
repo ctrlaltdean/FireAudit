@@ -15,6 +15,9 @@ frameworks:
     - "SC-8: Transmission Confidentiality and Integrity"
     - "AC-17: Remote Access"
     - "IA-3: Device Identification and Authentication"
+  NIST_CSF:
+    - "PR.AC-3: Remote access is managed"
+    - "PR.PT-3: Principle of least functionality is incorporated"
   ISO27001:
     - "A.9.4.2: Secure log-on procedures"
     - "A.13.1.1: Network controls"
@@ -22,7 +25,7 @@ frameworks:
     - "AC.L1-3.1.13: Employ cryptographic mechanisms to protect CUI"
     - "IA.L2-3.5.3: Use multi-factor authentication"
   DISA_STIG:
-    - "SRG-NET-000131: The network device must prohibit the use of SNMP v1 and v2c"
+    - "SRG-NET-000168: The network device must use SNMPv3 with authentication and privacy"
 match:
   type: any_of
   checks:

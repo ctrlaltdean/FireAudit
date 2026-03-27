@@ -22,7 +22,7 @@ frameworks:
   CMMC:
     - "AU.L2-3.3.1: Create and retain audit logs"
   DISA_STIG:
-    - "SRG-NET-000334: The network device must generate audit records for denied network traffic"
+    - "SRG-NET-000512: The network device must log denied traffic"
 match:
   type: condition
   path: logging.log_denied_traffic

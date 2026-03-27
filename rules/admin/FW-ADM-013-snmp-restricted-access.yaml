@@ -1,0 +1,47 @@
+rule_id: FW-ADM-013
+name: SNMP Must Be Restricted to Authorized Management Hosts
+description: >
+  SNMP should only be accessible from authorized management hosts. An SNMP
+  service with no host restrictions allows any network device to query or
+  write the device configuration, enabling unauthorized reconnaissance,
+  configuration disclosure, and — for write-enabled communities or SNMPv3
+  users — unauthorized configuration changes. When SNMP is enabled, the
+  allowed_hosts list must contain at least one authorized management network.
+severity: high
+vendors:
+  - all
+frameworks:
+  CIS:
+    - "CIS FW Benchmark 2.14: Restrict SNMP access to authorized hosts"
+  NIST_800-53:
+    - "SC-7: Boundary Protection"
+    - "AC-17: Remote Access"
+  NIST_CSF:
+    - "PR.AC-5: Network integrity is protected"
+    - "PR.PT-3: Principle of least functionality is incorporated"
+  ISO27001:
+    - "A.9.1.2: Access to networks and network services"
+    - "A.13.1.1: Network controls"
+  CMMC:
+    - "AC.L1-3.1.2: Limit access to types of transactions"
+    - "SC.L1-3.13.1: Monitor, control, and protect communications"
+  DISA_STIG:
+    - "SRG-NET-000168: The network device must use SNMPv3 with authentication and privacy"
+    - "SRG-NET-000049: The network device must restrict management access to authorized sources"
+match:
+  type: all_of
+  checks:
+    - type: condition
+      path: admin_access.snmp.enabled
+      condition:
+        type: is_true
+    - type: condition
+      path: admin_access.snmp.allowed_hosts
+      condition:
+        type: is_not_empty
+remediation: >
+  Configure SNMP host restrictions to limit access to authorized management hosts
+  only. FortiGate: Under 'config system snmp community' for each community,
+  configure 'config hosts' with specific management station IP addresses.
+  For SNMPv3, apply ACLs or trusted-host restrictions at the interface level.
+  Avoid leaving allowed_hosts empty which permits SNMP from any source.

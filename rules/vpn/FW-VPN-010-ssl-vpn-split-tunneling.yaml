@@ -24,7 +24,7 @@ frameworks:
     - "AC.L2-3.1.12: Monitor and control remote access sessions"
     - "SC.L1-3.13.1: Monitor, control, and protect communications"
   DISA_STIG:
-    - "SRG-NET-000231: The VPN client must not permit split tunneling unless explicitly approved"
+    - "SRG-NET-000132: The network device must enforce approved authorizations for access control decisions"
 match:
   type: any_of
   checks:
