@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -25,6 +26,58 @@ def infer_interface_role(zone: str | None, name: str | None = None) -> str | Non
             return "dmz"
         if any(h in lower for h in _LAN_HINTS):
             return "lan"
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Vendor auto-detection
+# ---------------------------------------------------------------------------
+
+def detect_vendor(content: str) -> str | None:
+    """Sniff raw config content and return the vendor string, or None if unknown.
+
+    Detection is intentionally fast (regex on first ~4 KB) and does NOT attempt
+    a full parse.  Checks are ordered from most-specific to least-specific.
+    """
+    head = content[:4096]
+
+    # FortiGate: header comment or global block
+    if re.search(r"#config-version=FGT", head) or (
+        "config system global" in head and "set hostname" in head
+    ):
+        return "fortigate"
+
+    # Cisco ASA / FTD
+    if re.search(r"^(ASA|ASDM|Cisco Adaptive Security)", head, re.MULTILINE):
+        return "cisco_asa"
+
+    # Palo Alto PAN-OS XML
+    if "<config version=" in head and "<devices>" in head:
+        return "paloalto"
+
+    # pfSense
+    if re.search(r"<pfsense", head, re.IGNORECASE):
+        return "pfsense"
+
+    # OPNsense
+    if re.search(r"<opnsense", head, re.IGNORECASE):
+        return "opnsense"
+
+    # SonicWall
+    if re.search(r"<(SonicwallSettings|SonicWALL)", head, re.IGNORECASE):
+        return "sonicwall"
+
+    # Sophos XG
+    if re.search(r'<Configuration\s+firmware_appliancekey=', head) or \
+       re.search(r"<APPLIANCESettings", head, re.IGNORECASE):
+        return "sophos_xg"
+
+    # WatchGuard (XML with <policy> or <profile> root + WatchGuard marker)
+    if re.search(r"<(policy|profile)[^>]*>", head) and (
+        "WatchGuard" in head or "<setup>" in head or "<interface " in head
+    ):
+        return "watchguard"
+
     return None
 
 

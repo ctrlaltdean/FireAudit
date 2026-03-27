@@ -22,7 +22,7 @@ fireaudit wizard
 
 Walks you through vendor selection, config file, framework, and report output interactively.
 
-### CLI
+### CLI — Single device
 
 ```bash
 # Audit a FortiGate config against all rules
@@ -40,6 +40,29 @@ fireaudit rules list
 # Parse config to normalized IR JSON
 fireaudit parse -c firewall.conf -v fortigate -o ir.json
 ```
+
+### CLI — Bulk / fleet audit
+
+Audit an entire directory of configs at once. Vendor is auto-detected per file.
+
+```bash
+# Audit all configs in a directory, write HTML reports + fleet summary
+fireaudit bulk ./configs/
+
+# Specify output directory and produce both HTML and JSON per device
+fireaudit bulk ./configs/ --output-dir ./reports/ --format both
+
+# Force vendor for all files (useful when auto-detect is ambiguous)
+fireaudit bulk ./configs/fortigate/ --vendor fortigate
+
+# Use 8 parallel workers for large fleets
+fireaudit bulk ./configs/ --workers 8
+```
+
+Outputs per device:
+- `<filename>.html` (or `.json`) — individual device report
+- `fleet_summary.html` — fleet overview table sorted worst score first
+- `fleet_summary.json` — machine-readable fleet results
 
 ## Supported Vendors
 
@@ -192,13 +215,38 @@ pytest
 pytest --cov=fireaudit --cov-report=html
 ```
 
+## Posture Scoring
+
+Every audit (single and bulk) produces a weighted posture score:
+
+| Severity | Deduction per FAIL |
+|----------|--------------------|
+| Critical | −20 pts |
+| High | −10 pts |
+| Medium | −4 pts |
+| Low | −1 pt |
+
+Score starts at 100 and floors at 0. Grade thresholds:
+
+| Grade | Score |
+|-------|-------|
+| A | 90–100 |
+| B | 75–89 |
+| C | 60–74 |
+| D | 40–59 |
+| F | 0–39 |
+
+`not_applicable` and `manual_check` findings do not affect the score.
+
+In bulk mode, the **fleet posture score** is the arithmetic mean of all device scores.
+
 ## Exit Codes
 
 | Code | Meaning |
 |------|---------|
 | 0 | All rules passed (or only low/info failures) |
-| 1 | Error (parse failure, missing rules) |
-| 2 | Critical or High severity failures found |
+| 1 | Error (parse failure, missing rules, or bulk with errors) |
+| 2 | Critical or High severity failures found (bulk: any device scores below 60) |
 
 Exit code 2 makes FireAudit CI/CD pipeline friendly.
 

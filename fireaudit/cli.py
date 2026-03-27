@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import click
@@ -19,9 +20,11 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
 
 from fireaudit import __version__
-from fireaudit.parsers import get_parser
+from fireaudit.parsers import get_parser, VENDOR_PARSERS
+from fireaudit.parsers.base import detect_vendor
 from fireaudit.engine.loader import RuleLoader, RuleLoadError
 from fireaudit.engine.evaluator import RuleEvaluator, build_report
 from fireaudit.output.html_report import render_html
@@ -253,6 +256,314 @@ def audit(
 
 
 # ---------------------------------------------------------------------------
+# bulk command
+# ---------------------------------------------------------------------------
+
+_CONFIG_EXTENSIONS = {".conf", ".xml", ".cfg", ".acl", ".txt"}
+
+
+def _discover_configs(path: Path) -> list[Path]:
+    """Return all config files under a directory (recursively) or expand a glob."""
+    if path.is_dir():
+        return sorted(
+            p for p in path.rglob("*")
+            if p.is_file() and p.suffix.lower() in _CONFIG_EXTENSIONS
+        )
+    # Treat as glob pattern
+    import glob as _glob
+    return sorted(Path(p) for p in _glob.glob(str(path), recursive=True) if Path(p).is_file())
+
+
+def _audit_one(
+    config_path: Path,
+    vendor: str | None,
+    rules_path: Path,
+) -> dict:
+    """Parse and audit a single config file. Returns a result dict."""
+    result: dict = {
+        "filename": config_path.name,
+        "path": str(config_path),
+        "vendor": None,
+        "hostname": None,
+        "posture_score": None,
+        "grade": None,
+        "fail_counts": {},
+        "report": None,
+        "error": None,
+        "report_file": None,
+    }
+
+    try:
+        content = config_path.read_text(encoding="utf-8", errors="replace")
+
+        # Vendor detection
+        detected = vendor or detect_vendor(content)
+        if not detected:
+            result["error"] = "vendor unknown — use --vendor to force"
+            return result
+        result["vendor"] = detected
+
+        parser_cls = get_parser(detected)
+        parser = parser_cls(source_file=config_path)
+        ir = parser.parse(content)
+        result["hostname"] = ir.get("meta", {}).get("hostname")
+
+        loader = RuleLoader(rules_path)
+        rules = loader.load_for_vendor(detected)
+        evaluator = RuleEvaluator(rules)
+        findings = evaluator.evaluate(ir, vendor=detected)
+        report = build_report(ir, findings)
+
+        result["posture_score"] = report["posture_score"]["score"]
+        result["grade"] = report["posture_score"]["grade"]
+        result["fail_counts"] = report["posture_score"]["fail_counts"]
+        result["report"] = report
+    except Exception as exc:
+        result["error"] = str(exc)
+
+    return result
+
+
+@main.command("bulk")
+@click.argument("path", type=click.Path())
+@click.option("--output-dir", "-o", default="fireaudit-reports", show_default=True, type=click.Path(), help="Directory to write reports into")
+@click.option("--format", "fmt", default="html", type=click.Choice(["html", "json", "both"]), show_default=True, help="Report format per device")
+@click.option("--vendor", "-v", default=None, type=click.Choice(list(VENDOR_PARSERS), case_sensitive=False), help="Force vendor for all files (skips auto-detect)")
+@click.option("--rules-dir", "-r", default=None, type=click.Path(), help="Custom rules directory")
+@click.option("--workers", default=4, show_default=True, type=int, help="Parallel worker threads")
+def bulk(path: str, output_dir: str, fmt: str, vendor: str | None, rules_dir: str | None, workers: int) -> None:
+    """Audit all firewall configs in a directory or matching a glob pattern.
+
+    \b
+    Examples:
+      fireaudit bulk ./configs/
+      fireaudit bulk ./configs/*.conf --vendor fortigate --format both
+      fireaudit bulk ./configs/ --output-dir ./reports/ --workers 8
+    """
+    target = Path(path)
+    out_dir = Path(output_dir)
+    rules_path = Path(rules_dir) if rules_dir else _DEFAULT_RULES_DIR
+
+    configs = _discover_configs(target)
+    if not configs:
+        console.print(f"[yellow]No config files found in:[/yellow] {target}")
+        return
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    console.print(f"Found [bold]{len(configs)}[/bold] config file(s)  →  reports: [cyan]{out_dir.resolve()}[/cyan]")
+
+    results: list[dict] = []
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        console=console,
+        transient=True,
+    ) as progress:
+        task = progress.add_task("Auditing…", total=len(configs))
+
+        def _process(cfg: Path) -> dict:
+            res = _audit_one(cfg, vendor, rules_path)
+            if res["report"] and not res["error"]:
+                stem = cfg.stem
+                if fmt in ("html", "both"):
+                    out_path = out_dir / f"{stem}.html"
+                    render_html(res["report"], output_path=out_path)
+                    res["report_file"] = str(out_path.name)
+                if fmt in ("json", "both"):
+                    out_path = out_dir / f"{stem}.json"
+                    render_json(res["report"], output_path=out_path)
+                    if fmt == "json":
+                        res["report_file"] = str(out_path.name)
+            return res
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_process, cfg): cfg for cfg in configs}
+            for future in as_completed(futures):
+                res = future.result()
+                results.append(res)
+                progress.advance(task)
+
+    # Sort worst score first (errors/unknowns at bottom)
+    results.sort(key=lambda r: (r["posture_score"] is None, r["posture_score"] or 0))
+
+    # Print fleet table
+    grade_colors = {"A": "green", "B": "bright_green", "C": "yellow", "D": "orange1", "F": "red"}
+    tbl = Table(box=box.SIMPLE_HEAD, show_lines=False, padding=(0, 1))
+    tbl.add_column("File", width=30)
+    tbl.add_column("Vendor", width=12)
+    tbl.add_column("Hostname", width=20)
+    tbl.add_column("Score", width=8, justify="right")
+    tbl.add_column("Grade", width=6, justify="center")
+    tbl.add_column("Crit", width=5, justify="right")
+    tbl.add_column("High", width=5, justify="right")
+    tbl.add_column("Med", width=5, justify="right")
+    tbl.add_column("Low", width=5, justify="right")
+    tbl.add_column("Status", width=20)
+
+    for r in results:
+        if r["error"]:
+            tbl.add_row(r["filename"], r["vendor"] or "?", "—", "—", "—", "—", "—", "—", "—",
+                        f"[red]{r['error'][:20]}[/red]")
+            continue
+        gc = grade_colors.get(r["grade"], "white")
+        fc = r["fail_counts"]
+        tbl.add_row(
+            r["filename"],
+            r["vendor"] or "?",
+            r["hostname"] or "—",
+            f"[{gc}]{r['posture_score']}[/{gc}]",
+            f"[{gc}]{r['grade']}[/{gc}]",
+            f"[red]{fc.get('critical', 0)}[/red]" if fc.get("critical") else "0",
+            f"[orange1]{fc.get('high', 0)}[/orange1]" if fc.get("high") else "0",
+            f"[yellow]{fc.get('medium', 0)}[/yellow]" if fc.get("medium") else "0",
+            str(fc.get("low", 0)),
+            f"[dim]{r['report_file'] or ''}[/dim]",
+        )
+
+    console.print(tbl)
+
+    # Fleet summary score
+    scored = [r for r in results if r["posture_score"] is not None]
+    errors = [r for r in results if r["error"]]
+    if scored:
+        fleet_score = round(sum(r["posture_score"] for r in scored) / len(scored))
+        from fireaudit.engine.scoring import grade_for_score
+        fleet_grade = grade_for_score(fleet_score)
+        gc = grade_colors.get(fleet_grade, "white")
+        console.print(Panel(
+            f"Fleet Posture Score: [{gc}][bold]{fleet_score}/100  Grade: {fleet_grade}[/bold][/{gc}]"
+            f"  |  {len(scored)} audited  {len(errors)} error(s)",
+            border_style="blue",
+        ))
+
+    # Write fleet_summary.json
+    fleet_json = {
+        "generated_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+        "total_devices": len(results),
+        "fleet_posture_score": round(sum(r["posture_score"] for r in scored) / len(scored)) if scored else None,
+        "fleet_grade": grade_for_score(round(sum(r["posture_score"] for r in scored) / len(scored))) if scored else None,
+        "devices": [
+            {
+                "filename": r["filename"],
+                "vendor": r["vendor"],
+                "hostname": r["hostname"],
+                "posture_score": r["posture_score"],
+                "grade": r["grade"],
+                "fail_counts": r["fail_counts"],
+                "report_file": r["report_file"],
+                "error": r["error"],
+            }
+            for r in results
+        ],
+    }
+    summary_json_path = out_dir / "fleet_summary.json"
+    summary_json_path.write_text(json.dumps(fleet_json, indent=2, default=str), encoding="utf-8")
+
+    # Write fleet_summary.html
+    _write_fleet_html(results, fleet_json, out_dir / "fleet_summary.html")
+    console.print(f"[green]Fleet summary:[/green] {(out_dir / 'fleet_summary.html').resolve()}")
+
+    if errors:
+        sys.exit(1)
+    if any(r["posture_score"] is not None and r["posture_score"] < 60 for r in results):
+        sys.exit(2)
+
+
+def _write_fleet_html(results: list[dict], fleet_json: dict, out_path: Path) -> None:
+    """Write the fleet summary HTML report."""
+    from jinja2 import Environment, BaseLoader
+    grade_color_map = {"A": "#16a34a", "B": "#65a30d", "C": "#d97706", "D": "#ea580c", "F": "#dc2626"}
+
+    FLEET_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireAudit Fleet Summary</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; }
+  header { background: #1e293b; color: white; padding: 2rem; }
+  header h1 { font-size: 1.75rem; font-weight: 700; }
+  header p { margin-top: .5rem; opacity: .7; font-size: .9rem; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+  .fleet-banner { background: white; border-radius: 8px; padding: 1.5rem 2rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 2rem; }
+  .fleet-grade { font-size: 4rem; font-weight: 800; line-height: 1; min-width: 80px; text-align: center; }
+  .fleet-bar-wrap { height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; margin: .5rem 0; flex: 1; }
+  .fleet-bar { height: 100%; border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: .875rem; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; }
+  th { background: #f1f5f9; padding: .6rem 1rem; text-align: left; font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+  td { padding: .75rem 1rem; border-bottom: 1px solid #e2e8f0; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; padding: .15rem .6rem; border-radius: 9999px; font-size: .8rem; font-weight: 700; }
+  footer { text-align: center; padding: 2rem; font-size: .8rem; color: #94a3b8; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FireAudit — Fleet Summary</h1>
+  <p>Generated {{ fleet.generated_at }} &nbsp;|&nbsp; {{ fleet.total_devices }} device(s) audited</p>
+</header>
+<div class="container">
+  {% set fs = fleet.fleet_posture_score %}
+  {% set fg = fleet.fleet_grade %}
+  {% set gc = grade_color_map.get(fg, "#64748b") %}
+  <div class="fleet-banner">
+    <div class="fleet-grade" style="color:{{ gc }};">{{ fg or "—" }}</div>
+    <div style="flex:1;">
+      <div style="font-size:1rem;font-weight:600;margin-bottom:.5rem;">Fleet Posture Score</div>
+      <div class="fleet-bar-wrap">
+        <div class="fleet-bar" style="width:{{ fs or 0 }}%;background:{{ gc }};"></div>
+      </div>
+      <span style="font-size:1.75rem;font-weight:700;">{{ fs or "—" }}</span>
+      <span style="font-size:.9rem;color:#64748b;">/100</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>File</th><th>Vendor</th><th>Hostname</th>
+        <th>Score</th><th>Grade</th>
+        <th>Critical</th><th>High</th><th>Medium</th><th>Low</th>
+        <th>Report</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for d in fleet.devices %}
+    {% set gc2 = grade_color_map.get(d.grade, "#64748b") %}
+    <tr>
+      <td>{{ d.filename }}</td>
+      <td>{{ d.vendor or "?" }}</td>
+      <td>{{ d.hostname or "—" }}</td>
+      <td><strong style="color:{{ gc2 }};">{{ d.posture_score if d.posture_score is not none else "—" }}</strong></td>
+      <td><span class="badge" style="background:{{ gc2 }}1a;color:{{ gc2 }};">{{ d.grade or "?" }}</span></td>
+      <td style="color:#dc2626;font-weight:{% if d.fail_counts.get('critical',0) %}600{% else %}400{% endif %};">{{ d.fail_counts.get("critical", 0) }}</td>
+      <td style="color:#ea580c;">{{ d.fail_counts.get("high", 0) }}</td>
+      <td style="color:#d97706;">{{ d.fail_counts.get("medium", 0) }}</td>
+      <td>{{ d.fail_counts.get("low", 0) }}</td>
+      <td>{% if d.report_file %}<a href="{{ d.report_file }}">{{ d.report_file }}</a>{% elif d.error %}<span style="color:#dc2626;font-size:.8rem;">{{ d.error[:40] }}</span>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<footer>FireAudit — fireaudit.local</footer>
+</body>
+</html>"""
+
+    env = Environment(loader=BaseLoader())
+    tmpl = env.from_string(FLEET_TEMPLATE)
+    html = tmpl.render(fleet=fleet_json, grade_color_map=grade_color_map)
+    out_path.write_text(html, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # parse command (IR only)
 # ---------------------------------------------------------------------------
 
@@ -459,17 +770,48 @@ def _print_findings_table(report: dict) -> None:
     console.print(table)
 
 
+def _posture_bar(score: int, width: int = 30) -> str:
+    """Return a Rich markup progress-bar string for the posture score."""
+    filled = round(score / 100 * width)
+    bar = "█" * filled + "░" * (width - filled)
+    if score >= 90:
+        color = "green"
+    elif score >= 75:
+        color = "bright_green"
+    elif score >= 60:
+        color = "yellow"
+    elif score >= 40:
+        color = "orange1"
+    else:
+        color = "red"
+    return f"[{color}]{bar}[/{color}]"
+
+
 def _print_summary(report: dict) -> None:
     summary = report["summary"]
     device = report["device"]
+    posture = report.get("posture_score", {})
 
     title = f"[bold]FireAudit Results[/bold] — {device['vendor'].upper()} {device.get('hostname') or ''}"
-    lines = [
+    lines = []
+
+    # Posture score line
+    if posture:
+        score = posture["score"]
+        grade = posture["grade"]
+        grade_colors = {"A": "green", "B": "bright_green", "C": "yellow", "D": "orange1", "F": "red"}
+        gc = grade_colors.get(grade, "white")
+        bar = _posture_bar(score)
+        lines.append(
+            f"Posture Score: [{gc}][bold]{score}/100[/bold]  Grade: {grade}[/{gc}]  {bar}"
+        )
+
+    lines.append(
         f"Rules: {summary['total_rules']}  "
         f"[green]Pass: {summary['pass']}[/green]  "
         f"[red]Fail: {summary['fail']}[/red]  "
-        f"[dim]Error: {summary.get('error', 0)}[/dim]",
-    ]
+        f"[dim]N/A: {summary.get('not_applicable', 0)}  Error: {summary.get('error', 0)}[/dim]"
+    )
 
     by_sev = summary.get("by_severity", {})
     sev_parts = []

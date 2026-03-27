@@ -33,6 +33,17 @@ _TEMPLATE = r"""<!DOCTYPE html>
   .pass .value { color: var(--pass); }
   .fail .value { color: var(--fail); }
   .score-card { border-top: 4px solid #6366f1; }
+  .posture-banner { background: white; border-radius: 8px; padding: 1.5rem 2rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 2rem; }
+  .posture-grade { font-size: 4rem; font-weight: 800; line-height: 1; min-width: 80px; text-align: center; }
+  .posture-grade.A { color: #16a34a; } .posture-grade.B { color: #65a30d; }
+  .posture-grade.C { color: #d97706; } .posture-grade.D { color: #ea580c; } .posture-grade.F { color: #dc2626; }
+  .posture-detail { flex: 1; }
+  .posture-detail h2 { font-size: 1rem; font-weight: 600; margin-bottom: .5rem; }
+  .posture-bar-wrap { height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; margin: .5rem 0; }
+  .posture-bar { height: 100%; border-radius: 6px; }
+  .posture-bar.A, .posture-bar.B { background: #16a34a; }
+  .posture-bar.C { background: #d97706; } .posture-bar.D { background: #ea580c; } .posture-bar.F { background: #dc2626; }
+  .posture-score-num { font-size: 2rem; font-weight: 700; }
   section { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 1.5rem; }
   section h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 1px solid #e2e8f0; }
   .fw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
@@ -85,6 +96,36 @@ _TEMPLATE = r"""<!DOCTYPE html>
 </header>
 
 <div class="container">
+
+  <!-- Posture score banner -->
+  {% if report.posture_score %}
+  {% set ps = report.posture_score %}
+  {% set grade = ps.grade %}
+  <div class="posture-banner">
+    <div class="posture-grade {{ grade }}">{{ grade }}</div>
+    <div class="posture-detail">
+      <h2>Security Posture Score</h2>
+      <div class="posture-bar-wrap">
+        <div class="posture-bar {{ grade }}" style="width: {{ ps.score }}%"></div>
+      </div>
+      <span class="posture-score-num">{{ ps.score }}<span style="font-size:1rem;font-weight:400;color:#64748b;">/100</span></span>
+      &nbsp;&nbsp;
+      <span style="font-size:.85rem;color:#64748b;">
+        {{ ps.fail_count }} fail &nbsp;·&nbsp; {{ ps.pass_count }} pass
+        {% if ps.not_applicable_count %}&nbsp;·&nbsp; {{ ps.not_applicable_count }} N/A{% endif %}
+        {% if ps.manual_check_count %}&nbsp;·&nbsp; {{ ps.manual_check_count }} manual{% endif %}
+      </span>
+    </div>
+    <div style="text-align:right;min-width:160px;font-size:.8rem;color:#64748b;">
+      {% for sev in ["critical","high","medium","low"] %}
+      {% set cnt = ps.fail_counts.get(sev, 0) %}
+      {% if cnt %}
+      <div><span style="color:var(--{{sev}});font-weight:600;">{{ cnt }} {{ sev }}</span></div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Summary cards -->
   <div class="grid">

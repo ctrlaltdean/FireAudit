@@ -608,9 +608,13 @@ def build_report(
             "controls_tested": sorted(data["controls"]),
         }
 
+    from fireaudit.engine.scoring import compute_posture_score
+    posture = compute_posture_score(findings)
+
     return {
         "report_version": "1.0",
         "generated_at": datetime.now(UTC).isoformat(),
+        "posture_score": posture,
         "device": {
             "vendor": vendor,
             "hostname": hostname,
