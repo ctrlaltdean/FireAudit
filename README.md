@@ -245,16 +245,37 @@ pytest --cov=fireaudit --cov-report=html
 
 ## Posture Scoring
 
-Every audit (single and bulk) produces a weighted posture score:
+Every audit produces a **posture score** (0–100) and a letter grade that appear at the top of every report.
 
-| Severity | Deduction per FAIL |
-|----------|--------------------|
-| Critical | −20 pts |
-| High | −10 pts |
-| Medium | −4 pts |
-| Low | −1 pt |
+### How the score is calculated
 
-Score starts at 100 and floors at 0. Grade thresholds:
+The score is a **severity-weighted pass rate** — not a simple pass/fail count, and not a deduction-from-100 model that can crater to zero from a handful of bad findings.
+
+Each automated rule that produces a `pass` or `fail` result is assigned a weight based on its severity:
+
+| Severity | Weight |
+|----------|--------|
+| Critical | 5 |
+| High     | 3 |
+| Medium   | 2 |
+| Low      | 1 |
+| Info     | 1 |
+
+The score is then:
+
+```
+score = (sum of weights for PASSING rules) / (sum of weights for all PASS + FAIL rules) × 100
+```
+
+**What this means in practice:**
+- A critical rule counts 5× more than a low/info rule when it passes *or* fails.
+- Failing a critical rule hurts significantly more than failing a low rule.
+- Having many passing rules always contributes positively — the score can never be driven to zero purely by a few severe failures while the majority of rules pass.
+- `not_applicable` and `manual_check` findings are excluded entirely from the calculation.
+
+**Example:** A device where 29 of 48 automated rules pass — including 4 critical and 10 high failures — scores approximately **58/100 (D)** rather than 0, because the 29 passing rules contribute their severity weight to the numerator.
+
+### Grade thresholds
 
 | Grade | Score |
 |-------|-------|
@@ -264,9 +285,7 @@ Score starts at 100 and floors at 0. Grade thresholds:
 | D | 40–59 |
 | F | 0–39 |
 
-`not_applicable` and `manual_check` findings do not affect the score.
-
-In bulk mode, the **fleet posture score** is the arithmetic mean of all device scores.
+In bulk mode, the **fleet posture score** is the arithmetic mean of all individual device scores.
 
 ## Exit Codes
 

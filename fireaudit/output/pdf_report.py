@@ -75,7 +75,7 @@ class _FireAuditPDF(FPDF):
         super().__init__(orientation="P", unit="mm", format="A4")
         self._report = report
         self.set_auto_page_break(auto=True, margin=20)
-        self.set_margins(left=15, top=15, right=15)
+        self.set_margins(left=15, top=22, right=15)
 
     def header(self) -> None:
         device = self._report.get("device", {})
