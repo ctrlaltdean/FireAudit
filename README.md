@@ -5,7 +5,7 @@ Offline firewall configuration auditing tool with multi-vendor support and compl
 ## Features
 
 - **11 vendors supported**: FortiGate, Palo Alto, Cisco ASA/FTD, pfSense, OPNsense, SonicWall, Sophos XG, WatchGuard, Check Point Gaia, Juniper SRX
-- **60 audit rules** — 47 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
+- **61 audit rules** — 48 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
 - **4 compliance frameworks**: CIS, NIST 800-53, ISO 27001, CMMC/DFARS
 - **HTML, JSON, and PDF report output** with per-framework compliance scores and a dedicated manual checks section
 - **Interactive wizard mode** — no CLI flags required
