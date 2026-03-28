@@ -377,8 +377,9 @@ class JuniperSRXParser(BaseParser):
             aa["session_timeout_seconds"] = ssh_idle
 
         # --- Telnet ---
-        telnet_val = _dig(services, "telnet")
-        telnet_enabled = telnet_val is not None
+        # JunOS keyword-only stanza 'telnet;' parses to {"telnet": None},
+        # so we must check key presence rather than value truthiness.
+        telnet_enabled = isinstance(services, dict) and "telnet" in services
         protocols.append({
             "protocol": "telnet",
             "enabled": telnet_enabled,

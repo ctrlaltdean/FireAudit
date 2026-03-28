@@ -32,7 +32,10 @@ match:
       type: intersects
       values:
         - des
+        - des-cbc
         - "3des"
+        - 3des-cbc
+        - 3des-ede
         - "rc4"
         - "null"
 remediation: >

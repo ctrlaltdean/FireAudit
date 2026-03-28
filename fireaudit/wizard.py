@@ -401,7 +401,9 @@ def _run_audit(settings: dict) -> None:
     scrub = settings["scrub"]
     do_manual_checks = settings.get("do_manual_checks", False)
 
-    rules_path = Path(__file__).parent.parent / "rules"
+    from fireaudit.updater import effective_rules_dir as _erd
+    _bundled = Path(__file__).parent.parent / "rules"
+    rules_path = _erd(_bundled)
 
     console.print()
     console.rule("[bold cyan]Running Audit[/bold cyan]")

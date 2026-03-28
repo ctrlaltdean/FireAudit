@@ -32,9 +32,13 @@ match:
       type: intersects
       values:
         - md5
+        - hmac-md5
+        - hmac-md5-96
         - sha1
         - sha-1
         - sha
+        - hmac-sha1
+        - hmac-sha-1-96
 remediation: >
   Replace MD5 and SHA-1 with SHA-256 or SHA-512 in all IPsec Phase 2 proposals.
   FortiGate: 'config vpn ipsec phase2-interface' → 'set proposal
