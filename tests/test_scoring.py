@@ -40,35 +40,40 @@ class TestComputePostureScore:
         assert result["pass_count"] == 3
 
     def test_single_critical_fail(self):
+        # Only one rule evaluated and it fails → 0 pass weight / 5 total weight → 0
         findings = [_f("fail", "critical")]
         result = compute_posture_score(findings)
-        assert result["score"] == 80  # 100 - 20
-        assert result["grade"] == "B"
+        assert result["score"] == 0
+        assert result["grade"] == "F"
         assert result["fail_counts"]["critical"] == 1
 
     def test_single_high_fail(self):
+        # Only one rule evaluated and it fails → 0 pass weight / 3 total weight → 0
         findings = [_f("fail", "high")]
         result = compute_posture_score(findings)
-        assert result["score"] == 90
+        assert result["score"] == 0
 
     def test_floor_at_zero(self):
-        findings = [_f("fail", "critical")] * 10  # 10 * 20 = 200 deduction
+        findings = [_f("fail", "critical")] * 10
         result = compute_posture_score(findings)
         assert result["score"] == 0
         assert result["grade"] == "F"
 
     def test_mixed_severities(self):
+        # pass_weight = low(1) + medium(2) = 3
+        # total_weight = critical(5) + high(3) + high(3) + medium(2) + low(1) + medium(2) = 16
+        # score = round(3/16 * 100) = 19
         findings = [
-            _f("fail", "critical"),   # -20
-            _f("fail", "high"),        # -10
-            _f("fail", "high"),        # -10
-            _f("fail", "medium"),      # -4
+            _f("fail", "critical"),
+            _f("fail", "high"),
+            _f("fail", "high"),
+            _f("fail", "medium"),
             _f("pass", "low"),
             _f("pass", "medium"),
         ]
         result = compute_posture_score(findings)
-        assert result["score"] == 56  # 100 - 44
-        assert result["grade"] == "D"
+        assert result["score"] == 19
+        assert result["grade"] == "F"
         assert result["fail_count"] == 4
         assert result["pass_count"] == 2
 
@@ -103,5 +108,6 @@ class TestComputePostureScore:
             Finding(rule_id="X-002", name="test2", severity="low", status="pass"),
         ]
         result = compute_posture_score(findings)
-        assert result["score"] == 90  # 100 - 10
+        # pass_weight = low(1), total_weight = high(3) + low(1) = 4 → score = round(1/4*100) = 25
+        assert result["score"] == 25
         assert result["fail_count"] == 1

@@ -92,7 +92,9 @@ class _FireAuditPDF(FPDF):
         self.set_xy(150, 3)
         self.cell(45, 8, f"Page {self.page_no()}", align="R", new_x=XPos.RIGHT, new_y=YPos.TOP)
         self.set_text_color(*_C_TEXT)
-        self.ln(5)
+        # Ensure the cursor lands below the header band so page content
+        # starts at the top margin instead of overlapping the header.
+        self.set_y(self.t_margin)
 
     def footer(self) -> None:
         self.set_y(-12)
@@ -211,10 +213,10 @@ def _write_posture_banner(pdf: FPDF, report: dict) -> None:
     pdf.set_fill_color(*color)
     pdf.rect(bar_x, bar_y, filled_w, bar_h, "F")
 
-    # Fail counts
+    # Fail counts — 4 × 11 mm = 44 mm; start at box_right - 44 to stay inside the box
     labels = [("CRIT", "critical", _C_CRITICAL), ("HIGH", "high", _C_HIGH),
               ("MED", "medium", _C_MEDIUM), ("LOW", "low", _C_LOW)]
-    cx = x0 + 148
+    cx = x0 + box_w - 44
     for lbl, key, clr in labels:
         cnt = fail_counts.get(key, 0)
         pdf.set_xy(cx, y0 + 6)
@@ -253,16 +255,14 @@ def _write_device_info(pdf: FPDF, report: dict) -> None:
 def _write_summary_stats(pdf: FPDF, report: dict) -> None:
     _section_header(pdf, "Audit Summary")
     summary = report.get("summary", {})
-    by_status = summary.get("by_status", {})
-    by_sev = summary.get("by_severity", {})
 
-    # Status row
+    # Status counts are stored directly on summary (not nested under "by_status")
     statuses = [
-        ("PASS", by_status.get("pass", 0), _C_PASS),
-        ("FAIL", by_status.get("fail", 0), _C_FAIL),
-        ("N/A", by_status.get("not_applicable", 0), _C_NA),
-        ("MANUAL", by_status.get("manual_check", 0), _C_MANUAL),
-        ("ERROR", by_status.get("error", 0), (124, 58, 237)),
+        ("PASS", summary.get("pass", 0), _C_PASS),
+        ("FAIL", summary.get("fail", 0), _C_FAIL),
+        ("N/A", summary.get("not_applicable", 0), _C_NA),
+        ("MANUAL", summary.get("manual_check", 0), _C_MANUAL),
+        ("ERROR", summary.get("error", 0), (124, 58, 237)),
     ]
     col_w = 36
     x0 = pdf.get_x()
@@ -286,7 +286,8 @@ def _write_summary_stats(pdf: FPDF, report: dict) -> None:
 
 
 def _write_framework_scores(pdf: FPDF, report: dict) -> None:
-    fw_scores = report.get("framework_scores", {})
+    # build_report stores framework data under "compliance_scores"
+    fw_scores = report.get("compliance_scores", {})
     if not fw_scores:
         return
 
@@ -298,9 +299,9 @@ def _write_framework_scores(pdf: FPDF, report: dict) -> None:
     col = 0
 
     for fw_key, fw_data in fw_scores.items():
-        pct = fw_data.get("percentage", 0)
-        passed = fw_data.get("passed", 0)
-        total = fw_data.get("total", 0)
+        pct = fw_data.get("score_percent", 0)
+        passed = fw_data.get("pass", 0)
+        total = fw_data.get("pass", 0) + fw_data.get("fail", 0)
         name = fw_key.replace("_", " ").upper()
 
         bar_color = _C_PASS if pct >= 80 else (_C_MEDIUM if pct >= 60 else _C_FAIL)
@@ -378,7 +379,7 @@ def _write_findings(pdf: FPDF, report: dict) -> None:
         name = _t(f.get("name", ""), 90)
         severity = f.get("severity", "info")
         status = f.get("status", "pass")
-        detail = _t(f.get("detail") or f.get("reason") or "", 220)
+        detail = _t(f.get("details") or f.get("detail") or f.get("reason") or "", 220)
         remediation = _t(f.get("remediation") or "", 320)
         vendor_cmd = _t(f.get("vendor_command") or "")
         affected = [_t(a) for a in (f.get("affected_items") or [])]

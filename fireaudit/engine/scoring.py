@@ -7,13 +7,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from fireaudit.engine.evaluator import Finding
 
-# Deduction weights per severity for each FAIL finding
-_DEDUCTIONS: dict[str, int] = {
-    "critical": 20,
-    "high": 10,
-    "medium": 4,
+# Severity weights: critical rules contribute more to the score than low/info.
+# A critical pass or fail counts 5× more than a low pass or fail.
+_WEIGHTS: dict[str, int] = {
+    "critical": 5,
+    "high": 3,
+    "medium": 2,
     "low": 1,
-    "info": 0,
+    "info": 1,
 }
 
 _GRADE_THRESHOLDS: list[tuple[int, str]] = [
@@ -35,6 +36,12 @@ def grade_for_score(score: int) -> str:
 def compute_posture_score(findings: list) -> dict:
     """Compute a posture score from a list of Finding objects or finding dicts.
 
+    Uses a severity-weighted pass rate so the score reflects both the proportion
+    of rules that pass *and* the severity of failures.  Critical rules carry 5×
+    the weight of low/info rules; a single critical fail therefore costs more than
+    five low fails, but the score can never be crushed to zero by failures alone
+    when many rules still pass.
+
     Returns::
 
         {
@@ -49,13 +56,15 @@ def compute_posture_score(findings: list) -> dict:
             "error_count": 0,
         }
     """
-    deduction = 0
-    fail_counts: dict[str, int] = {s: 0 for s in _DEDUCTIONS}
+    fail_counts: dict[str, int] = {s: 0 for s in _WEIGHTS}
     pass_count = 0
     fail_count = 0
     na_count = 0
     manual_count = 0
     error_count = 0
+
+    pass_weight = 0
+    total_weight = 0
 
     for f in findings:
         # Support both Finding dataclass and dict (from to_dict())
@@ -68,10 +77,14 @@ def compute_posture_score(findings: list) -> dict:
 
         if status == "pass":
             pass_count += 1
+            w = _WEIGHTS.get(severity, 1)
+            pass_weight += w
+            total_weight += w
         elif status == "fail":
             fail_count += 1
             fail_counts[severity] = fail_counts.get(severity, 0) + 1
-            deduction += _DEDUCTIONS.get(severity, 0)
+            w = _WEIGHTS.get(severity, 1)
+            total_weight += w
         elif status == "not_applicable":
             na_count += 1
         elif status == "manual_check":
@@ -79,7 +92,7 @@ def compute_posture_score(findings: list) -> dict:
         elif status == "error":
             error_count += 1
 
-    score = max(0, 100 - deduction)
+    score = round(pass_weight / total_weight * 100) if total_weight > 0 else 100
     return {
         "score": score,
         "grade": grade_for_score(score),
