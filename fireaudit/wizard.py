@@ -339,7 +339,7 @@ def _wizard_click() -> dict:
 # Run the audit with gathered settings
 # ---------------------------------------------------------------------------
 
-def _run_manual_walkthrough(findings: list) -> None:
+def _run_manual_walkthrough(findings: list, legacy_schema: bool = False) -> None:
     """Interactively walk the user through each manual check finding."""
     import click
 
@@ -353,6 +353,18 @@ def _run_manual_walkthrough(findings: list) -> None:
         f"[dim]{len(manual)} checks require human review. "
         "Answer Y if confirmed OK, N if it needs attention, or press Enter to skip.[/dim]"
     )
+
+    if legacy_schema:
+        console.print(Panel(
+            "[yellow]Note:[/yellow] This audit used a [bold]WatchGuard pre-v11 config[/bold]. "
+            "Several automated checks could not run (admin access, authentication, logging, VPN, SNMP). "
+            "The manual checks below cover areas that are always worth verifying by hand, but pay "
+            "particular attention to items that would normally be caught automatically — "
+            "those will need manual inspection on this device.",
+            border_style="yellow",
+            padding=(0, 1),
+        ))
+
     console.print()
 
     for idx, f in enumerate(manual, 1):
@@ -422,6 +434,27 @@ def _run_audit(settings: dict) -> None:
     if scrub:
         ir = _scrub_ir(ir)
 
+    # Warn when a WatchGuard pre-v11 config was auto-detected
+    if ir.get("meta", {}).get("legacy_schema"):
+        console.print(Panel(
+            "[bold yellow]WatchGuard Legacy Schema Detected[/bold yellow]\n\n"
+            "This config uses the old Fireware XML format (pre-v11 / X-series). "
+            "FireAudit has extracted what it can — hostname, model, firmware version, "
+            "firewall policies, and network interfaces — but the following audit "
+            "categories [bold]cannot be checked[/bold] from this format and will "
+            "show [bold]N/A[/bold] in the report:\n\n"
+            "  • Admin access (management protocols, SSH, HTTPS, session timeout)\n"
+            "  • Authentication (password policy, local users, account lockout)\n"
+            "  • Logging (syslog servers, NTP)\n"
+            "  • VPN / IPsec tunnels\n"
+            "  • SNMP configuration\n\n"
+            "[dim]To get a full audit, export the config from Fireware v11+ Policy Manager "
+            "or System Manager using File → Export → Configuration File.[/dim]",
+            title="[yellow]Partial Audit — Limited Coverage[/yellow]",
+            border_style="yellow",
+        ))
+        console.print()
+
     # Load rules
     with console.status("[bold]Loading rules…"):
         try:
@@ -448,7 +481,7 @@ def _run_audit(settings: dict) -> None:
 
     # Optional manual check walkthrough (updates findings in place before report)
     if do_manual_checks:
-        _run_manual_walkthrough(findings)
+        _run_manual_walkthrough(findings, legacy_schema=ir.get("meta", {}).get("legacy_schema", False))
 
     report = build_report(ir, findings, framework_filter=framework)
     _print_summary(report)

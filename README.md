@@ -85,9 +85,30 @@ Outputs per device:
 | OPNsense | XML (`config.xml`) | `opnsense` |
 | SonicWall | XML (settings export) | `sonicwall` |
 | Sophos XG | XML (backup file) | `sophos_xg` |
-| WatchGuard | XML (policy backup) | `watchguard` |
+| WatchGuard | XML (policy backup — Fireware v11+) | `watchguard` |
 | Check Point Gaia | Text (`show configuration` clish output) | `checkpoint` |
 | Juniper SRX | Text (JunOS hierarchical `show configuration`) | `juniper_srx` |
+
+### WatchGuard — Pre-v11 (X-series) Configs
+
+WatchGuard Fireware v11+ exports a modern XML schema that FireAudit fully supports. Older devices running Fireware **pre-v11** (typically X-series hardware from the early 2010s) export a different XML format.
+
+FireAudit **auto-detects** the old schema and performs a best-effort parse rather than refusing the file. However, coverage is significantly reduced:
+
+| Category | Pre-v11 support |
+|---|---|
+| Device identity (hostname, model, firmware) | Extracted |
+| Firewall policies (action, logging, source/dest) | Extracted |
+| Network interfaces (name, IP) | Extracted |
+| Admin access (protocols, SSH, HTTPS, session timeout) | **Not available** |
+| Authentication (password policy, users, lockout) | **Not available** |
+| Logging (syslog servers, NTP) | **Not available** |
+| VPN / IPsec tunnels | **Not available** |
+| SNMP configuration | **Not available** |
+
+Audit checks for unavailable categories will show **N/A** in the report rather than incorrect results.
+
+> **To get a full audit:** export the configuration from Fireware **v11+ Policy Manager** or **System Manager** using *File → Export → Configuration File*. The resulting XML will use the modern schema and all checks will run.
 
 ### Vendor Auto-Detection
 

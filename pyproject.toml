@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fireaudit"
-version = "0.5.7"
+version = "0.5.8"
 description = "Firewall configuration auditing tool with multi-vendor support and compliance framework mapping"
 requires-python = ">=3.11"
 dependencies = [

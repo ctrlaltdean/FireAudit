@@ -206,6 +206,7 @@ class WatchGuardParser(BaseParser):
         ir = self._base_ir()
         meta = ir["meta"]
         meta["vendor"] = self.vendor
+        meta["legacy_schema"] = True  # signal to callers that partial extraction was used
 
         # Device identity — old schema uses <system-parameters><device-conf>
         sys_params = root.find("system-parameters")
