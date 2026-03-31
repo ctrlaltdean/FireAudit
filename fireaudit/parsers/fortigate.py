@@ -187,16 +187,19 @@ class FortiGateParser(BaseParser):
         sections = _parse_config(content)
         ir = self._base_ir()
 
-        # Pre-scan for firmware version in header comment before tokenization discards it.
-        # FortiOS exports begin with: #config-version=FGVMXXXX-7.2.5-FW-build1517-...:opmode=...
+        # Pre-scan for model + firmware version in the header comment before tokenization
+        # discards it.  FortiOS exports begin with:
+        #   #config-version=FGVMXXXX-7.2.5-FW-build1517-230427:opmode=0:...
+        # or, for physical appliances:
+        #   #config-version=FGT-100E-7.2.5-FW-build1517-230427:opmode=0:...
+        # Format: <MODEL>-<major>.<minor>.<patch>-FW-build<n>-<date>:opmode=...
         for line in content.splitlines():
             if line.startswith("#config-version="):
-                # Extract the firmware portion: everything after '=' up to the '-FW-' or ':'
                 raw = line[len("#config-version="):]
-                # Format: <model>-<major>.<minor>.<patch>-FW-build<n>-<date>:opmode=...
-                m = re.search(r"-([\d]+\.[\d]+\.[\d]+)", raw)
+                m = re.search(r"^(.+?)-(\d+\.\d+\.\d+)", raw)
                 if m:
-                    ir["meta"]["firmware_version"] = m.group(1)
+                    ir["meta"]["model"] = m.group(1)
+                    ir["meta"]["firmware_version"] = m.group(2)
                 break
 
         self._extract_meta(sections, ir)

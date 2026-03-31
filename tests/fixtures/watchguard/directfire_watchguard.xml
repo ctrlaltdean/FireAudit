@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- OLD SCHEMA FIXTURE: This is a WatchGuard old Fireware XML schema (pre-v11 / X-series) file.
-     It uses <policy-list> as a direct child of the root element, which is the old schema indicator.
-     Parsing this file with WatchGuardParser is EXPECTED to raise a ValueError with the message:
-     "WatchGuard old Fireware XML schema (pre-v11) detected. Export the config using Fireware v11+
-     Policy Manager for compatibility."
-     Tests that reference this fixture should assert that ValueError is raised. -->
+<!-- OLD SCHEMA FIXTURE: WatchGuard old Fireware XML schema (pre-v11 / X-series).
+     Uses <policy-list> as a direct child of the root element.
+     Parser auto-detects this and falls back to best-effort extraction:
+     hostname, model, firmware, policies, and interfaces are extracted;
+     other security fields default to IR defaults (N/A on most audit checks). -->
 <profile>
     <product-grade>2</product-grade>
     <rs-version>1370552898</rs-version>

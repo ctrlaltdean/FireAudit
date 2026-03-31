@@ -170,10 +170,7 @@ class WatchGuardParser(BaseParser):
         # Old schema has <policy-list> as a direct child instead of the
         # v11+ children (<setup>, <interface>, <policy-tag>, <logging>, etc.).
         if root.find("policy-list") is not None:
-            raise ValueError(
-                "WatchGuard old Fireware XML schema (pre-v11) detected. "
-                "Export the config using Fireware v11+ Policy Manager for compatibility."
-            )
+            return self._parse_old_schema(root)
 
         ir = self._base_ir()
 
@@ -185,6 +182,99 @@ class WatchGuardParser(BaseParser):
         self._extract_firewall_policies(root, ir)
         self._extract_interfaces(root, ir)
         self._extract_network_objects(root, ir)
+
+        return ir
+
+    # ------------------------------------------------------------------
+    # Legacy schema (pre-v11 / X-series) best-effort parser
+    # ------------------------------------------------------------------
+
+    def _parse_old_schema(self, root: ET.Element) -> dict:
+        """Best-effort extraction from the old Fireware X-series XML schema.
+
+        The old schema (pre-v11) uses different element names and structure
+        compared to Fireware v11+.  We extract what is reasonably available
+        so that rules can run against it instead of aborting with an error.
+        Fields not present in the old format are left at their IR defaults.
+        """
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "WatchGuard old Fireware schema (pre-v11) detected — "
+            "partial extraction only; some audit checks may show N/A."
+        )
+
+        ir = self._base_ir()
+        meta = ir["meta"]
+        meta["vendor"] = self.vendor
+
+        # Device identity — old schema uses <system-parameters><device-conf>
+        sys_params = root.find("system-parameters")
+        dev_conf = sys_params.find("device-conf") if sys_params is not None else None
+        meta["hostname"] = _text(dev_conf, "system-name")
+
+        # Model: <base-model> on root, or <for-model> inside device-conf
+        model_val = _text(root, "base-model") or _text(dev_conf, "for-model")
+        meta["model"] = model_val
+
+        # Firmware / schema version: <for-version> on root
+        meta["firmware_version"] = _text(root, "for-version")
+
+        # Firewall policies — <policy-list><policy>
+        policies: list[dict] = []
+        for pol in root.findall("policy-list/policy"):
+            name = _text(pol, "name") or ""
+            enabled_raw = _text(pol, "enable")
+            enabled = enabled_raw in (None, "1", "true")
+            # <firewall>: 1 = allow/packet-filter, 0 = deny/blocked
+            fw_raw = _text(pol, "firewall")
+            action = "allow" if fw_raw in ("1", None) else "deny"
+            log_raw = _text(pol, "log")
+            has_log = log_raw not in (None, "0", "false")
+            src = [a.text.strip() for a in pol.findall("from-alias-list/alias") if a.text]
+            dst = [a.text.strip() for a in pol.findall("to-alias-list/alias") if a.text]
+            svc = _text(pol, "service")
+            policies.append({
+                "name": name,
+                "enabled": enabled,
+                "action": action,
+                "log": has_log,
+                "source": src,
+                "destination": dst,
+                "service": svc or "Any",
+                "comment": _text(pol, "description") or "",
+            })
+        ir["firewall_policies"] = policies
+
+        # Interfaces — <interface-list><interface>
+        interfaces: list[dict] = []
+        for iface in root.findall("interface-list/interface"):
+            name = _text(iface, "name") or ""
+            if not name or name.startswith("Any"):
+                continue  # skip pseudo-interfaces
+            phys = iface.find(".//physical-if")
+            ip_raw = _text(phys, "ip") if phys is not None else None
+            mask_raw = _text(phys, "netmask") if phys is not None else None
+            enabled_raw = _text(phys, "enabled") if phys is not None else None
+            enabled = enabled_raw in (None, "1", "true")
+            # Build CIDR if both IP and mask are present
+            ip_cidr: str | None = None
+            if ip_raw and mask_raw:
+                try:
+                    import ipaddress
+                    net = ipaddress.IPv4Network(f"{ip_raw}/{mask_raw}", strict=False)
+                    ip_cidr = f"{ip_raw}/{net.prefixlen}"
+                except ValueError:
+                    ip_cidr = ip_raw
+            interfaces.append({
+                "name": name,
+                "ip_address": ip_cidr or ip_raw,
+                "enabled": enabled,
+                "zone": None,
+                "role": infer_interface_role(None, name),
+                "management_access": [],
+                "description": _text(iface, "description") or "",
+            })
+        ir["interfaces"] = interfaces
 
         return ir
 
