@@ -5,7 +5,7 @@ Offline firewall configuration auditing tool with multi-vendor support and compl
 ## Features
 
 - **11 vendors supported**: FortiGate, Palo Alto, Cisco ASA/FTD, pfSense, OPNsense, SonicWall, Sophos XG, WatchGuard, Check Point Gaia, Juniper SRX
-- **61 audit rules** — 48 automated checks + 13 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
+- **60 audit rules** — 48 automated checks + 12 manual verification items covering admin access, authentication, logging, VPN, and firewall policies
 - **4 compliance frameworks**: CIS, NIST 800-53, ISO 27001, CMMC/DFARS
 - **HTML, JSON, and PDF report output** with per-framework compliance scores and a dedicated manual checks section
 - **Interactive wizard mode** — no CLI flags required
@@ -201,7 +201,7 @@ Each rule describes a **required** security configuration. Severity indicates ho
 | FW-VPN-012 | IPsec Phase 2 (IPsec SA) lifetime must not exceed 3600 seconds | Medium |
 | FW-VPN-013 | IPsec VPN must use certificate authentication instead of pre-shared keys | Medium |
 
-### Manual Verification Checklist (13 items)
+### Manual Verification Checklist (12 items)
 
 The following checks require human review and cannot be determined from static configuration analysis alone. They appear as a dedicated section in the HTML report.
 
@@ -217,7 +217,6 @@ The following checks require human review and cannot be determined from static c
 | FW-MAN-008 | Application control policy must be configured and enforced |
 | FW-MAN-009 | Remote access VPN must enforce endpoint posture checking |
 | FW-MAN-010 | Physical access to firewall hardware must be restricted |
-| FW-MAN-011 | IKEv1 aggressive mode must be confirmed disabled (cross-vendor) |
 | FW-MAN-012 | Anti-spoofing (uRPF) must be enabled on WAN interfaces |
 | FW-MAN-013 | Firewall rules must be reviewed against business requirements annually |
 

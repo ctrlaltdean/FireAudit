@@ -224,7 +224,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
         </tr>
       </thead>
       <tbody>
-        {% for f in report.findings | sort(attribute='severity', reverse=False) %}
+        {% for f in report.findings %}
         <tr data-sev="{{ f.severity }}" data-status="{{ f.status }}">
           <td><code>{{ f.rule_id }}</code></td>
           <td>
@@ -360,11 +360,18 @@ function filterTable() {
 
 def render_html(report: dict, output_path: str | Path | None = None) -> str:
     """Render an HTML report from a report dict. Returns HTML string."""
+    # Pre-sort findings: fail/error first by severity, then pass, N/A, manual
+    _sev = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    _sta = {"fail": 0, "error": 1, "pass": 2, "not_applicable": 3, "manual_check": 4}
+    sorted_report = {**report, "findings": sorted(
+        report.get("findings", []),
+        key=lambda f: (_sta.get(f.get("status", "pass"), 5), _sev.get(f.get("severity", "info"), 5)),
+    )}
+
     env = Environment(loader=BaseLoader())
-    env.globals["report"] = report
     env.globals["fw_url"] = get_control_url
     template = env.from_string(_TEMPLATE)
-    html = template.render(report=report)
+    html = template.render(report=sorted_report)
 
     if output_path:
         Path(output_path).write_text(html, encoding="utf-8")

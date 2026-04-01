@@ -196,7 +196,8 @@ class FortiGateParser(BaseParser):
         for line in content.splitlines():
             if line.startswith("#config-version="):
                 raw = line[len("#config-version="):]
-                m = re.search(r"^(.+?)-(\d+\.\d+\.\d+)", raw)
+                # Handle both "7.2.5" and "v7.2.5" version prefix formats
+                m = re.search(r"^(.+?)-v?(\d+\.\d+\.\d+)", raw)
                 if m:
                     ir["meta"]["model"] = m.group(1)
                     ir["meta"]["firmware_version"] = m.group(2)
