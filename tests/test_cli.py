@@ -361,6 +361,6 @@ class TestVersionCommand:
         assert result.exit_code == 0, (
             f"Unexpected exit code {result.exit_code}: {result.output}"
         )
-        assert "0.5" in result.output, (
-            f"Expected version containing '0.5', got: {result.output}"
+        assert "0.6" in result.output, (
+            f"Expected version containing '0.6', got: {result.output}"
         )
