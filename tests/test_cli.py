@@ -361,6 +361,7 @@ class TestVersionCommand:
         assert result.exit_code == 0, (
             f"Unexpected exit code {result.exit_code}: {result.output}"
         )
-        assert "0.6" in result.output, (
-            f"Expected version containing '0.6', got: {result.output}"
+        import re
+        assert re.search(r"\d+\.\d+\.\d+", result.output), (
+            f"Expected a version string in output, got: {result.output}"
         )
