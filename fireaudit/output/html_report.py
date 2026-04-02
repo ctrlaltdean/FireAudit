@@ -71,6 +71,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
   .badge.error { background: #f5f3ff; color: #7c3aed; }
   .badge.manual_check { background: #fefce8; color: #854d0e; }
   .manual-note { font-size: .8rem; background: #fefce8; border-left: 3px solid #ca8a04; padding: .5rem .75rem; margin-top: .5rem; color: #713f12; }
+  .rule-desc { font-size: .78rem; color: #64748b; margin-top: .3rem; line-height: 1.4; }
   .remediation { font-size: .8rem; background: #f8fafc; border-left: 3px solid #6366f1; padding: .5rem .75rem; margin-top: .5rem; color: #475569; }
   .vendor-cmd { font-size: .8rem; background: #f0fdf4; border-left: 3px solid #16a34a; padding: .5rem .75rem; margin-top: .5rem; color: #166534; }
   .vendor-cmd pre { margin-top: .25rem; font-family: monospace; white-space: pre-wrap; font-size: .75rem; }
@@ -229,6 +230,9 @@ _TEMPLATE = r"""<!DOCTYPE html>
           <td><code>{{ f.rule_id }}</code></td>
           <td>
             {{ f.name }}
+            {% if f.description %}
+            <p class="rule-desc">{{ f.description }}</p>
+            {% endif %}
             {% if f.frameworks %}
             <details>
               <summary>Framework mappings</summary>
@@ -296,6 +300,9 @@ _TEMPLATE = r"""<!DOCTYPE html>
           <td><code>{{ f.rule_id }}</code></td>
           <td>
             {{ f.name }}
+            {% if f.description %}
+            <p class="rule-desc">{{ f.description }}</p>
+            {% endif %}
             {% if f.frameworks %}
             <details>
               <summary>Framework mappings</summary>

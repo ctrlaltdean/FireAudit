@@ -379,6 +379,7 @@ def _write_findings(pdf: FPDF, report: dict) -> None:
         name = _t(f.get("name", ""), 90)
         severity = f.get("severity", "info")
         status = f.get("status", "pass")
+        description = _t(f.get("description") or "", 400)
         detail = _t(f.get("details") or f.get("detail") or f.get("reason") or "", 220)
         remediation = _t(f.get("remediation") or "", 320)
         vendor_cmd = _t(f.get("vendor_command") or "")
@@ -387,12 +388,14 @@ def _write_findings(pdf: FPDF, report: dict) -> None:
 
         # Estimate row height: base + multi-line content
         detail_lines = max(1, len(detail) // 50 + 1) if detail else 1
+        desc_lines = max(1, len(description) // 65 + 1) if description else 0
         rem_lines = max(1, len(remediation) // 60 + 1) if remediation and status == "fail" else 0
         cmd_lines = len(vendor_cmd.splitlines()) if vendor_cmd else 0
         manual_lines = max(1, len(manual_note) // 60 + 1) if manual_note else 0
         affected_lines = 1 if affected else 0
         row_h = 6 * max(1, detail_lines)
-        extra_h = (rem_lines * 5 + cmd_lines * 4 + manual_lines * 5 + affected_lines * 4 +
+        extra_h = (desc_lines * 4 + (2 if description else 0) +
+                   rem_lines * 5 + cmd_lines * 4 + manual_lines * 5 + affected_lines * 4 +
                    (4 if remediation and status == "fail" else 0) +
                    (4 if vendor_cmd else 0) +
                    (4 if manual_note else 0))
@@ -446,6 +449,15 @@ def _write_findings(pdf: FPDF, report: dict) -> None:
             pdf.multi_cell(col_widths[4], 4, detail[:200], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
         cur_y = row_y + row_h
+
+        # Description (why this rule matters)
+        if description:
+            pdf.set_xy(x0 + col_widths[0], cur_y)
+            pdf.set_font("Helvetica", "I", 6)
+            pdf.set_text_color(*_C_MUTED)
+            pdf.multi_cell(sum(col_widths[1:]), 4, description,
+                           new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            cur_y = pdf.get_y() + 1
 
         # Remediation note
         if status == "fail" and remediation:
@@ -537,6 +549,14 @@ def _write_manual_checks(pdf: FPDF, report: dict) -> None:
         pdf.set_text_color(*_C_TEXT)
         pdf.set_xy(x0 + 32, y0)
         pdf.multi_cell(148, 7, _t(f.get("name", "")), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+        # Description
+        desc = _t(f.get("description") or "")
+        if desc:
+            pdf.set_xy(x0 + 32, pdf.get_y())
+            pdf.set_font("Helvetica", "I", 7)
+            pdf.set_text_color(*_C_MUTED)
+            pdf.multi_cell(148, 5, desc[:400], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
         # Manual note
         note = _t(f.get("manual_note") or "")
